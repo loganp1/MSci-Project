@@ -36,13 +36,7 @@ def nc_to_csv(nc_filename, csv_filename):
         if dataset:
             dataset.close()
 
-"""
 
-# Example usage:
-nc_file = 'dataInit.nc'  # Replace with the path to your NetCDF file
-csv_file = 'output3.csv'    # Replace with the desired output CSV file name
-nc_to_csv(nc_file, csv_file)
-"""
 ncname=input("Enter name of .nc file: ")
 csvname=input("Enter desired csv file name: ")
 nc_to_csv(ncname, csvname)
