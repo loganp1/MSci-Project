@@ -6,7 +6,7 @@ Created on Tue Oct 31 19:51:02 2023
 """
 import datetime
 
-def seconds_since_start_of_year(day, hour, minute, second):
+def convToSecs(day, hour, minute, second):
     # Create a datetime object for the given year and day of the year
     current_year = datetime.datetime.now().year
     start_of_year = datetime.datetime(current_year, 1, 1)
