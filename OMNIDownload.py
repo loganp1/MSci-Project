@@ -96,8 +96,39 @@ def extract_second_column_values(file_path):
 colTitles=extract_second_column_values("format.txt")
 df = pd.read_csv(csvname, header=None)
 df.columns=colTitles
+from datetime import datetime, timedelta
+
+def UnixConv(df, seconds=True,DayVar="Day",YearVar="Year"):
+    if seconds==False:
+        column_name = 'Seconds'
+        df.insert(4, column_name, 0)
+    def convert_to_unix_timestamp(row):
+        year = int(row[YearVar].item())
+        day = int(row[DayVar].item())
+        hour = int(row['Hour'].item())
+        minute = int(row['Minute'].item())
+        second = int(row['Seconds'].item())
+        date = datetime(year, 1, 1) + timedelta(days=day - 1, hours=hour, minutes=minute, seconds=second)
+        unix_timestamp = int((date - datetime(1970, 1, 1)).total_seconds())
+        return unix_timestamp
+
+    df['Time'] = df.apply(convert_to_unix_timestamp, axis=1)
+    df.drop(columns=[YearVar, DayVar, 'Hour', 'Minute', 'Seconds'], inplace=True)
+    df = df[['Time'] + [col for col in df.columns if col != 'Time']]
+    return df
+secs=input("Seconds present?, Y/N: ")
+if secs=="N":
+    secs=False
+else:
+    secs=True
+
+df=UnixConv(df,secs, "DOY", "YEAR")
+
 df.to_csv(csvname, index=False)
+
 print("CSV save complete")
+
+
 
 
 
