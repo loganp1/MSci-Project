@@ -6,14 +6,17 @@ Created on Tue Nov  7 12:36:38 2023
 """
 
 from datetime import datetime, timedelta
+import pandas as pd
+filename="wind_speed_1995-2023_1hour.csv"
+df=pd.read_csv(filename)
 
 def UnixConv(df, seconds=True, minutes=True,DayVar="Day",YearVar="Year"):
     if seconds==False:
         column_name = 'Seconds'
         df.insert(4, column_name, 0)
     if minutes==False:
-            column_name = 'Minute'
-            df.insert(3, column_name, 0)
+        column_name = 'Minute'
+        df.insert(3, column_name, 0)
     def convert_to_unix_timestamp(row):
         year = int(row[YearVar].item())
         day = int(row[DayVar].item())
@@ -40,8 +43,8 @@ if minutes=="N":
 else:
     minutes=True
 
-df=UnixConv(df,secs, minutes,"DOY", "YEAR")
+df=UnixConv(df,secs, minutes)
 #df=UnixConv(df,secs)
-df.to_csv(csvname, index=False)
+df.to_csv(filename, index=False)
 
 print("CSV save complete")
