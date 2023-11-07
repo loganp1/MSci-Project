@@ -1,10 +1,19 @@
-import pandas as pd
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Nov  7 12:36:38 2023
+
+@author: Ned
+"""
+
 from datetime import datetime, timedelta
 
-def convert_time_columns_to_unix_seconds(df, seconds=True,DayVar="Day",YearVar="Year"):
+def UnixConv(df, seconds=True, minutes=True,DayVar="Day",YearVar="Year"):
     if seconds==False:
         column_name = 'Seconds'
-        df.insert(5, column_name, 0)
+        df.insert(4, column_name, 0)
+    if minutes==False:
+            column_name = 'Minute'
+            df.insert(3, column_name, 0)
     def convert_to_unix_timestamp(row):
         year = int(row[YearVar].item())
         day = int(row[DayVar].item())
@@ -19,19 +28,20 @@ def convert_time_columns_to_unix_seconds(df, seconds=True,DayVar="Day",YearVar="
     df.drop(columns=[YearVar, DayVar, 'Hour', 'Minute', 'Seconds'], inplace=True)
     df = df[['Time'] + [col for col in df.columns if col != 'Time']]
     return df
+secs=input("Seconds present?, Y/N: ")
+if secs=="N":
+    secs=False
+else:
+    secs=True
+    
+minutes=input("Minutes present?, Y/N: ")
+if minutes=="N":
+    minutes=False
+else:
+    minutes=True
 
-fname="DSCOVRBData.csv"
-df = pd.read_csv("DSCOVRBData.csv")
-df2=pd.read_csv("ARTEMISBData.csv")
+df=UnixConv(df,secs, minutes,"DOY", "YEAR")
+#df=UnixConv(df,secs)
+df.to_csv(csvname, index=False)
 
-
-
-# Convert time columns to Unix seconds
-df = convert_time_columns_to_unix_seconds(df,seconds=False)
-df.to_csv(fname,index=0)
-
-
-
-
-
-print(df)
+print("CSV save complete")

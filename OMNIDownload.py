@@ -98,10 +98,13 @@ df = pd.read_csv(csvname, header=None)
 df.columns=colTitles
 from datetime import datetime, timedelta
 
-def UnixConv(df, seconds=True,DayVar="Day",YearVar="Year"):
+def UnixConv(df, seconds=True, minutes=True,DayVar="Day",YearVar="Year"):
     if seconds==False:
         column_name = 'Seconds'
         df.insert(4, column_name, 0)
+    if minutes==False:
+            column_name = 'Minute'
+            df.insert(3, column_name, 0)
     def convert_to_unix_timestamp(row):
         year = int(row[YearVar].item())
         day = int(row[DayVar].item())
@@ -121,9 +124,15 @@ if secs=="N":
     secs=False
 else:
     secs=True
+    
+minutes=input("Minutes present?, Y/N: ")
+if minutes=="N":
+    minutes=False
+else:
+    minutes=True
 
-df=UnixConv(df,secs, "DOY", "YEAR")
-
+df=UnixConv(df,secs, minutes,"DOY", "YEAR")
+#df=UnixConv(df,secs)
 df.to_csv(csvname, index=False)
 
 print("CSV save complete")
