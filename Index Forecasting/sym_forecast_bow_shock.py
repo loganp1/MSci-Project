@@ -390,6 +390,46 @@ print('\nGaussian fit parameters:')
 print('A =',popt[0],'\nmu =',popt[1],'\nsigma =',popt[2])
 
 
+#%% As Tim said, it's meaningless to fit Gaussians over the whole distribution.
+#   We are interested in the PEAK
+
+# Isolate the peak of the cross-correlation curve
+lower_lim = -500*60   # x60 because graph shows in minutes but data is in seconds, so convert mins-->secs
+upper_lim = 700*60
+
+# Ensure that the boolean array matches the size of the original arrays
+boolean_mask = (time_delays[:-1] >= lower_lim) & (time_delays[:-1] <= upper_lim)
+
+# Filter the arrays based on the limits
+filtered_cross_corr_values = cross_corr_values[boolean_mask]
+filtered_time_delays = time_delays[:-1][boolean_mask]
+
+# Plot the cross-correlation values for the filtered data
+plt.figure(figsize=(12, 6))
+plt.plot(filtered_time_delays/60, filtered_cross_corr_values, label='Filtered Cross-Correlation')
+
+# Find the index of the peak in the filtered data
+peak_index = np.argmax(filtered_cross_corr_values)
+
+# Plot the peak in the filtered data
+plt.axvline(filtered_time_delays[peak_index]/60, color='red', linestyle='--', label='Peak Correlation')
+
+# Fitting code for the new filtered data
+popt, pcov = curve_fit(Gaussian, filtered_time_delays/60, filtered_cross_corr_values)
+plt.plot(filtered_time_delays/60, Gaussian(filtered_time_delays/60, *popt), label='Gaussian Fit')
+
+plt.xlabel('Time Delay (minutes)', fontsize=15)
+plt.ylabel('Cross-Correlation', fontsize=15)
+plt.title('Storm1')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+print('\nPeak cross-correlation is observed', int(filtered_time_delays[peak_index]/60), 'minutes after bow shock measurement')
+print('\nGaussian fit parameters:')
+print('A =', popt[0], '\nmu =', popt[1], '\nsigma =', popt[2])
+
+
 #%% Storm2
 
 # Perform cross-correlation
