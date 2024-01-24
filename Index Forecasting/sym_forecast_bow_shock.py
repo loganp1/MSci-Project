@@ -48,6 +48,12 @@ def F(E, d):
         F = d * (E - 0.5)
     return F
 
+
+# Record different terms 
+deriv_term = []
+F_E = []
+term1 = []
+
 # Model from Burton et al. 1975
 def SYM_forecast(SYM_i, dt, a, b, c, d, P_i, P_iplus1, E_i):
     
@@ -57,7 +63,11 @@ def SYM_forecast(SYM_i, dt, a, b, c, d, P_i, P_iplus1, E_i):
     #print('F(E) =',F(E_i,d)*dt)
     #print('1st term =',-a*(SYM_i - b * np.sqrt(P_i) + c)*dt)
     #print('SYM_i+1 =',SYM_i + (-a * (SYM_i - b * np.sqrt(P_i) + c) + F(E_i, d) + derivative_term)*dt)
+    deriv_term.append(derivative_term*dt)
+    F_E.append(F(E_i,d)*dt)
+    term1.append(-a*(SYM_i - b * np.sqrt(P_i) + c)*dt)
     return SYM_i + (-a * (SYM_i - b * np.sqrt(P_i) + c) + F(E_i, d) + derivative_term) * dt
+
 
 #%% Plot E and P distributions for visual comparison vs SYM/H - do for storm 1
 
@@ -77,7 +87,7 @@ pressure = df_storm1['Flow pressure, nPa'].values
 
 # Plotting
 plt.figure(figsize=(12, 6))
-plt.plot(days1, sym_storm1/-15, label = 'SYM/H')
+#plt.plot(days1, sym_storm1/-15, label = 'SYM/H')
 plt.grid()
 
 # Adding labels and title
@@ -139,13 +149,23 @@ for i in range(len(df_storm1['Day'].tolist())-1):
     sym_forecast_storm1.append(new_sym)
     current_sym = new_sym
     
+    
+#%% Plot the contributions from the different terms
+
+plt.figure()
+plt.plot(days1[:-1],deriv_term,label='Derivative Term')
+plt.plot(days1[:-1],F_E,label='F(E) Term')
+plt.plot(days1[:-1],term1,label='1st Term')
+plt.legend()
+plt.show()
+    
 
 #%% Plot forecast vs calculated SYM/H data
 
 # Storm1 Plot
 
 # Extract relevant columns
-days1 = df_storm1['DayHourMin'].values             # .values just the NumPy version of .tolist I think
+days1 = df_storm1['DayHourMin'].values             # .values just the Pandas version of .tolist I think
 sym_storm1 = df_storm1['SYM/H, nT'].values
 
 sym_forecast_storm1[0] = sym_storm1[0]   # Add initial valu we use to propagate through forecast so
@@ -174,6 +194,17 @@ path = ('C:\\Users\\logan\\OneDrive - Imperial College London\\Uni\\Year 4\\MSci
 
 plt.legend()
 plt.savefig(path)
+plt.show()
+
+
+#%%% Compare forecast to each term in model
+
+plt.figure()
+plt.plot(days1[1:],np.asarray(sym_forecast_storm1)/-500,label='Scaled SYM/H Prediction')
+plt.plot(days1[1:],deriv_term,label='Derivative Term')
+plt.plot(days1[1:],F_E,label='F(E) Term')
+plt.plot(days1[1:],term1,label='1st Term')
+plt.legend()
 plt.show()
 
 #%% Storm2 Forecast
