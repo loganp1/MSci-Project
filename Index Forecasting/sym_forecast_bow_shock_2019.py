@@ -49,6 +49,12 @@ def F(E, d):
     return F
 
 
+# Record different terms 
+deriv_term = []
+F_E = []
+term1 = []
+overall_contr = []
+
 # Model from Burton et al. 1975
 def SYM_forecast(SYM_i, dt, a, b, c, d, P_i, P_iplus1, E_i):
     
@@ -56,6 +62,7 @@ def SYM_forecast(SYM_i, dt, a, b, c, d, P_i, P_iplus1, E_i):
     deriv_term.append(derivative_term*dt)
     F_E.append(F(E_i,d)*dt)
     term1.append(-a*(SYM_i - b * np.sqrt(P_i) + c)*dt)
+    overall_contr.append((-a * (SYM_i - b * np.sqrt(P_i) + c) + F(E_i, d) + derivative_term) * dt)
     
     return SYM_i + (-a * (SYM_i - b * np.sqrt(P_i) + c) + F(E_i, d) + derivative_term) * dt
 
@@ -68,7 +75,7 @@ def SYM_forecast(SYM_i, dt, a, b, c, d, P_i, P_iplus1, E_i):
 df_params['DayHourMin'] = df_params['Day'] + df_params['Hour'] / 24.0 + df_params['Minute'] / 60 / 24
 
 # Filter the DataFrame
-df_storm1 = df_params[(132 < df_params['Day']) & (df_params['Day'] < 135)]
+df_storm1 = df_params[(132 < df_params['Day']) & (df_params['Day'] < 136)]
 
 # Extract relevant columns
 days1 = df_storm1['DayHourMin'].values
@@ -126,7 +133,7 @@ d = -1e-3 * gamma
 # Initially, let's act under the assumption of no time delay from bow shock to Earth
 
 # Filter the DataFrame
-df_storm1 = df_params[(132 < df_params['Day']) & (df_params['Day'] < 136)]
+#df_storm1 = df_params[(132 < df_params['Day']) & (df_params['Day'] < 136)]
 
 sym_forecast_storm1 = []
 current_sym = df_storm1['SYM/H, nT'].tolist()[0]
@@ -135,6 +142,7 @@ current_sym = df_storm1['SYM/H, nT'].tolist()[0]
 deriv_term = []
 F_E = []
 term1 = []
+overall_contr = []
 
 for i in range(len(df_storm1['Day'].tolist())-1):
     
@@ -146,6 +154,24 @@ for i in range(len(df_storm1['Day'].tolist())-1):
     current_sym = new_sym
     
     
+
+#%% Plot the contributions from the different terms
+
+plt.figure()
+plt.plot(days1[:-1],deriv_term,label='Derivative Term')
+plt.plot(days1[:-1],F_E,label='F(E) Term')
+plt.plot(days1[:-1],term1,label='1st Term')
+#plt.plot(days1[:-1],overall_contr,label='Overall Contribution')
+plt.legend()
+plt.show()
+
+# Plot cumulative sum of overall_contr which should show how wed expect sym forecast to change
+plt.figure()
+plt.plot(days1[:-1],np.cumsum(overall_contr))    
+plt.xlabel('Day in 2001', fontsize=10)
+plt.ylabel('Cumulative Sum of Terms in Model', fontsize=10)
+plt.grid()
+
 
 #%% Plot forecast vs calculated SYM/H data
 
@@ -184,3 +210,109 @@ plt.savefig(path)
 plt.show()
 
 
+#%%% Compare forecast to each term in model
+
+plt.figure()
+plt.plot(days1[1:],np.asarray(sym_forecast_storm1),label='Scaled SYM/H Prediction')
+plt.plot(days1[1:],deriv_term,label='Derivative Term')
+plt.plot(days1[1:],np.asarray(F_E)*200,label='F(E) Term')
+plt.plot(days1[1:],np.asarray(term1)*-300,label='1st Term')
+plt.legend()
+plt.show()
+
+
+#%% Cross-correlations to find a time shift from bow shock to Earth
+
+# Storm1
+
+from scipy.signal import correlate
+
+# Perform cross-correlation
+lags = np.arange(-len(sym_storm1) + 1, len(sym_storm1))
+#cross_corr_values = correlate(sym_storm1, sym_forecast_storm1, mode='full') / len(sym_storm1)
+# Normalise:
+#cross_corr_values = correlate(sym_storm1, sym_forecast_storm1, 
+#                              mode='full') / (np.std(sym_storm1) * np.std(sym_forecast_storm1) * len(sym_storm1))
+
+# Calculate corresponding time delays
+time_delays = lags * dt
+
+# Using my crosscorr function I created
+from cross_correlation import cross_correlation
+time_delays,cross_corr_values = cross_correlation(sym_storm1, sym_forecast_storm1,time_delays)
+
+# Find the index of the maximum cross-correlation value
+peak_index = np.argmax(np.abs(cross_corr_values))
+
+# Plot the cross-correlation values
+plt.figure(figsize=(12, 6))
+plt.plot(time_delays[:-1]/60, cross_corr_values, label='Cross-Correlation')
+plt.axvline(time_delays[peak_index]/60, color='red', linestyle='--', label='Peak Correlation')
+plt.xlabel('Time Delay (minutes)', fontsize=15)
+plt.ylabel('Cross-Correlation', fontsize=15)
+plt.title('Storm1')
+plt.grid(True)
+#plt.text(-1000,7200,'Peak Cross-Correlation is Observed at \n 65 Minutes After Bow Shock Measurements',
+#         horizontalalignment='right')
+
+
+# Fit a Gaussian to the top (or all?) of the curve to try and quantify a time shift & its uncertainty
+
+from scipy.optimize import curve_fit
+
+def Gaussian(x, A, mu, sigma):
+    
+    return A * np.exp(-(x - mu)**2/(2 * sigma**2))
+
+popt, pcov = curve_fit(Gaussian, time_delays[:-1]/60, cross_corr_values)
+
+popt, pcov = curve_fit(Gaussian, time_delays[:-1]/60, cross_corr_values)
+
+plt.plot(time_delays[:-1]/60, Gaussian(time_delays[:-1]/60, *popt), label='Gaussian Fit')
+
+plt.legend()
+plt.show()
+
+print('\nPeak cross-correlation is observed', int(time_delays[peak_index]/60), 'minutes after bow shock measurement')
+print('\nGaussian fit parameters:')
+print('A =',popt[0],'\nmu =',popt[1],'\nsigma =',popt[2])
+
+
+#%% As Tim said, it's meaningless to fit Gaussians over the whole distribution.
+#   We are interested in the PEAK
+
+# Isolate the peak of the cross-correlation curve
+lower_lim = -70*60   # x60 because graph shows in minutes but data is in seconds, so convert mins-->secs
+upper_lim = 100*60
+
+# Ensure that the boolean array matches the size of the original arrays
+boolean_mask = (time_delays[:-1] >= lower_lim) & (time_delays[:-1] <= upper_lim)
+
+# Filter the arrays based on the limits
+filtered_cross_corr_values = cross_corr_values[boolean_mask]
+filtered_time_delays = time_delays[:-1][boolean_mask]
+
+# Plot the cross-correlation values for the filtered data
+plt.figure(figsize=(12, 6))
+plt.plot(filtered_time_delays/60, filtered_cross_corr_values, label='Filtered Cross-Correlation')
+
+# Find the index of the peak in the filtered data
+peak_index = np.argmax(filtered_cross_corr_values)
+
+# Plot the peak in the filtered data
+plt.axvline(filtered_time_delays[peak_index]/60, color='red', linestyle='--', label='Peak Correlation')
+
+# Fitting code for the new filtered data
+popt, pcov = curve_fit(Gaussian, filtered_time_delays/60, filtered_cross_corr_values)
+plt.plot(filtered_time_delays/60, Gaussian(filtered_time_delays/60, *popt), label='Gaussian Fit')
+
+plt.xlabel('Time Delay (minutes)', fontsize=15)
+plt.ylabel('Cross-Correlation', fontsize=15)
+plt.title('Storm1')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+print('\nPeak cross-correlation is observed', int(filtered_time_delays[peak_index]/60), 'minutes after bow shock measurement')
+print('\nGaussian fit parameters:')
+print('A =', popt[0], '\nmu =', popt[1], '\nsigma =', popt[2])
