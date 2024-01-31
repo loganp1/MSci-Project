@@ -5,47 +5,75 @@ Created on Wed Jan 24 14:00:58 2024
 @author: logan
 """
 
+'''This file will locate storms and therefore useful analysis periods using SYM/H'''
+
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Read in SYM/H index & plasma data
-df_params = pd.read_csv('omni_ind_params_2019_1min.csv')
+df_params1 = pd.read_csv('SYM1.csv')
+df_params2 = pd.read_csv('SYM2.csv')
+df_params3 = pd.read_csv('SYM3.csv')
+df_params4 = pd.read_csv('SYM4.csv')
 
+#%% Create time series and sym variable
 
-#%% Clean Data
+# Combine 'Year', 'Day', 'Hour', and 'Minute' into a new column 'Datetime'
+df_params1['Datetime'] = pd.to_datetime(df_params1['Year'].astype(str) + df_params1['Day'].astype(str).str.zfill(3) 
+                                        + df_params1['Hour'].astype(str).str.zfill(2) 
+                                        + df_params1['Minute'].astype(str).str.zfill(2), format='%Y%j%H%M')
 
-# Identify rows with NaN values
-df_params['BZ, nT (GSE)'] = df_params['BZ, nT (GSE)'].replace(9999.99, np.nan)
-df_params['Speed, km/s'] = df_params['Speed, km/s'].replace(99999.9, np.nan)
-df_params['Flow pressure, nPa'] = df_params['Flow pressure, nPa'].replace(99.99, np.nan)
-df_params['Electric field, mV/m'] = df_params['Electric field, mV/m'].replace(999.99, np.nan)
-df_params['Proton Density, n/cc'] = df_params['Proton Density, n/cc'].replace(999.9, np.nan)
-
-# Interpolate NaN valuesind_params_2001_1min.csv'
-for column in df_params.columns[3:]:  # Exclude the time columns
-    df_params[column] = df_params[column].interpolate()
-
-# Drop rows with remaining NaN values
-df_params = df_params.dropna()
-
-
-#%% Create time series and isolate different columns
-
-# Combine 'Day' and 'Hour' into a new column 'DayHour'
-df_params['DayHourMin'] = df_params['Day'] + df_params['Hour'] / 24.0 + df_params['Minute'] / 60 / 24
-time = df_params['DayHourMin']
+time1 = df_params1['Datetime']
 
 # Name the different datasets
-sym = df_params['SYM/H, nT']
-Bz = df_params['BZ, nT (GSE)']
-speed = df_params['Speed, km/s']
-pressure = df_params['Flow pressure, nPa']
-Efield = df_params['Electric field, mV/m']
-density = df_params['Proton Density, n/cc']
+sym1 = df_params1['SYM/H, nT']
 
-#%% Identify storm events
-
-plt.plot(time,sym)
+# Identify storm events
+plt.plot(time1, sym1)
 
 
+
+
+#%% Create time series and sym variable for the New Dataset 2
+
+# Combine 'Day', 'Hour', and 'Minute' into a new column 'Datetime'
+df_params2['Datetime'] = pd.to_datetime(df_params2['Year'].astype(str) + df_params2['Day'].astype(str).str.zfill(3) 
+                                        + df_params2['Hour'].astype(str).str.zfill(2) 
+                                        + df_params2['Minute'].astype(str).str.zfill(2), format='%Y%j%H%M')
+time2 = df_params2['Datetime']
+
+# Name the different datasets for the New Dataset 2
+sym2 = df_params2['SYM/H, nT']
+
+# Identify storm events for the New Dataset 2
+plt.plot(time2, sym2)
+
+
+#%% Create time series and sym variable for the New Dataset 3
+
+# Combine 'Day', 'Hour', and 'Minute' into a new column 'Datetime'
+df_params3['Datetime'] = pd.to_datetime(df_params3['Year'].astype(str) + df_params3['Day'].astype(str).str.zfill(3) 
+                                        + df_params3['Hour'].astype(str).str.zfill(2) 
+                                        + df_params3['Minute'].astype(str).str.zfill(2), format='%Y%j%H%M')
+time3 = df_params3['Datetime']
+
+# Name the different datasets for the New Dataset 3
+sym3 = df_params3['SYM/H, nT']
+
+# Identify storm events for the New Dataset 3
+plt.plot(time3, sym3)
+
+
+ #%% Create time series and sym variable for the New Dataset 4
+
+# Combine 'Day', 'Hour', and 'Minute' into a new column 'Datetime'
+df_params4['Datetime'] = pd.to_datetime(df_params4['Year'].astype(str) + df_params4['Day'].astype(str).str.zfill(3) 
+                                        + df_params4['Hour'].astype(str).str.zfill(2) 
+                                        + df_params4['Minute'].astype(str).str.zfill(2), format='%Y%j%H%M')
+time4 = df_params4['Datetime']
+
+# Name the different datasets for the New Dataset 4
+sym4 = df_params4['SYM/H, nT']
+
+# Identify storm events for the New Dataset 4
+plt.plot(time4, sym4)

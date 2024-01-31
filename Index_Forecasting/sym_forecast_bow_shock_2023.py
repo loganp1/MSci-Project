@@ -85,12 +85,12 @@ pressure = df_storm1['Flow pressure, nPa'].values
 
 # Plotting
 plt.figure(figsize=(12, 6))
-plt.plot(days1, sym_storm1/-15, label = 'SYM/H')
+#plt.plot(days1, sym_storm1/-15, label = 'SYM/H')
 plt.grid()
 
 # Adding labels and title
 plt.xlabel('Day in 2001', fontsize=15)
-plt.ylabel('Scaled SYM/H (nT) (/-15)', fontsize=15)
+#plt.ylabel('Scaled SYM/H (nT) (/-15)', fontsize=15)
 #plt.title('Storm 1', fontsize=15)
 
 # Set x-axis ticks to display only whole numbers
@@ -98,8 +98,9 @@ plt.xticks(range(int(days1[0]), int(days1[-1]) + 1), fontsize=15)
 plt.yticks(fontsize=15)
 
 # Plot parameters E and P in storm to compare to SYM/H
-plt.plot(days1, Efield, label = 'E')
+plt.plot(days1, -Efield, label = 'E',color='Orange')
 plt.plot(days1, pressure, label = 'P')
+plt.ylabel('E & P',fontsize=15)
 
 plt.legend()
 
@@ -282,7 +283,7 @@ print('A =',popt[0],'\nmu =',popt[1],'\nsigma =',popt[2])
 #   We are interested in the PEAK
 
 # Isolate the peak of the cross-correlation curve
-lower_lim = -70*60   # x60 because graph shows in minutes but data is in seconds, so convert mins-->secs
+lower_lim = -200*60   # x60 because graph shows in minutes but data is in seconds, so convert mins-->secs
 upper_lim = 100*60
 
 # Ensure that the boolean array matches the size of the original arrays
