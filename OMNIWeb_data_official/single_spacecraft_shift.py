@@ -13,10 +13,9 @@ Created on Wed Jan 24 14:41:51 2024
 """
 
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-#from crossCorr import crossCorrShift
-def singleSpacecraft(s,sRef,indS,indRef,plotVar=False):
+
+
+def singleSpacecraft(s,sRef): # I removed (indS,indRef,plotVar=False) as arguments in function
     """
     s : list/array
     Spacecraft data: [[t0,vx0,vy0,vz0,x0,y0,z0,DATA],[t1,vx1,vy1,vz1,x1,y1,z1,...].T lol.
@@ -66,15 +65,15 @@ ART=pd.read_csv("testARTEMIS.csv").to_numpy().T
 test=singleSpacecraft(DSCOVR, ART,9,6,True)
 """
 
-def propagate(s, sRef):
+def singleSpacecraft_propagate(s, sRef):
     s=np.array(s)
     sRef=np.array(sRef)
     vxAv=np.mean(s[1])
     vyAv=np.mean(s[2])
     vzAv=np.mean(s[3])
-    Ts=(sRef[1]-s[4])/(s[1])
-    s=[s[0],s[1],s[2],s[3],np.array(s[4])+s[1]*Ts,
+    Ts=(abs(sRef[1]-s[4]))/(abs(s[1]))
+    s=[np.asarray(s[0])+np.asarray(Ts),s[1],s[2],s[3],np.array(s[4])+s[1]*Ts,
                               np.array(s[5])+s[2]*Ts,
-                              np.array(s[6])+s[3]*Ts]
+                              np.array(s[6])+s[3]*Ts,s[7],s[8]]
     
-    return s, Ts
+    return s[0], s[8], s[7], Ts

@@ -5,13 +5,6 @@ Created on Fri Feb  2 15:46:28 2024
 @author: logan
 """
 
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Feb  1 17:43:46 2024
-
-@author: logan
-"""
-
 
 import pandas as pd
 import matplotlib.pyplot as plt

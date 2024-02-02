@@ -128,7 +128,11 @@ def EP_weightedAv_propagator(df1,df2,df3):
     
    
     
-    # Chosen BSN location at (X=14,Y=0,Z=0)
+    # Chosen BSN location at (X=14,Y=0,Z=0) units in Re
+    
+    ####
+    #### IMPORTANT!!! Surely results wrong as velocity in km/s but distance in Re so time shift WRONG!!!!!!!!
+    ####
     
     times_BSN = np.zeros(len(df1))  # Don't think times matter at BSN, its always same in our model!
     BSN_x = np.full(len(df1),14)

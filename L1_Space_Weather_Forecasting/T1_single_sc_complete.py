@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb  1 17:43:46 2024
+Created on Fri Feb  2 17:24:16 2024
 
 @author: logan
 """
@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from forecasting_model import SYM_forecast
 from scipy.optimize import curve_fit
+from singleSC_propagator_function import EP_singleSC_propagator
 
 #%%
 
@@ -36,59 +37,10 @@ plt.plot(DateTime,sym)
 df_params1 = pd.read_csv('dscovr_T1_1min_unix.csv')
 df_params1 = df_params1[541280:]
 
+#%% In this new file, I'll use my single_sc function to return the time series and E,P values downstream
 
-#%% Clean Data
-
-# Identify rows with NaN values from USEFUL columns
-df_params1['BZ, GSE, nT'] = df_params1['BZ, GSE, nT'].replace(9999.990, np.nan)
-df_params1['Speed, km/s'] = df_params1['Speed, km/s'].replace(99999.900, np.nan)
-df_params1['Proton Density, n/cc'] = df_params1['Proton Density, n/cc'].replace(999.999, np.nan)
-
-# Check where values will be interpolated
-Bz1 = df_params1['BZ, GSE, nT'].values
-plt.plot(DateTime,Bz1)
-
-#%%
-
-# Interpolate NaN values
-for column in df_params1.columns:
-    df_params1[column] = df_params1[column].interpolate()
-
-# Drop rows with remaining NaN values
-df_params1 = df_params1.dropna()
-
-# Isolate the different USEFUL columns
-Bz1 = df_params1['BZ, GSE, nT'].values
-vtot1 = df_params1['Speed, km/s'].values
-pdens1 = df_params1['Proton Density, n/cc'].values
-
-# Test plotting Bz1 again with interpolation
-plt.plot(DateTime,Bz1)
-
-
-#%% Extract quantities needed for SYM/H prediction and assign functions
-
-def P(proton_density,velocity_mag):
-    # Found the correct unit scaling on OMNIweb using units data is given in!
-    return proton_density*velocity_mag**2*2e-6
-
-def E(velocity_mag,Bz):
-    
-    return -velocity_mag*Bz*1e-3
-
-P1 = P(pdens1,vtot1)
-E1 = E(vtot1,Bz1)
-
-# Plot E and P to observe distributions
-
-plt.plot(DateTime,P1,label='P')
-plt.plot(DateTime,E1,label='E')
-plt.xlabel('Day')
-plt.ylabel('E (mV/m) & P (nPa)')
-plt.grid()
-
-plt.legend()
-
+time1, E1, P1, dTs = EP_singleSC_propagator(df_params1,'DSCOVR')
+DateTime1 = pd.to_datetime(time1, unit='s')
 
 #%% Use model to forecast SYM/H, starting with a basic model without propagation
 
@@ -110,7 +62,6 @@ for i in range(len(DateTime)-1):
 
 sym_forecast1.insert(0,initial_sym)   # Add initial value we used to propagate through forecast
 
-
 #%% Plot results
 
 # Plotting
@@ -128,11 +79,39 @@ plt.xticks(fontsize=15)
 plt.yticks(fontsize=15)
 
 # Plot forecasted SYM/H in storm to compare to calculated SYM/H
-plt.plot(DateTime, sym_forecast1, label = 'DSCOVR Forecasted SYM/H')
+plt.plot(DateTime1, sym_forecast1, label = 'DSCOVR Forecasted SYM/H')
 
 plt.legend(loc='upper left',fontsize=15)
 plt.show()
 
+
+#%% Plot time shift histogram
+
+# Set a custom color and edgecolor for the bars
+plt.hist(dTs/60, bins=100, color='#3498db', edgecolor='black', alpha=0.7)
+
+# Add a title to the histogram
+plt.title('Distribution of Time Shifts')
+
+# Label the x and y axes
+plt.xlabel('Time Shift (minutes)')
+plt.ylabel('Frequency')
+
+# Add grid lines to improve readability
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+# Adjust the x-axis ticks for better readability
+plt.xticks(range(int(min(dTs/60)), int(max(dTs/60))+1, 5))
+
+# Add a vertical line at the mean or any other relevant metric
+mean_value = np.mean(dTs/60)
+plt.axvline(mean_value, color='red', linestyle='dashed', linewidth=1, label=f'Mean: {mean_value:.2f} mins')
+
+# Show legend
+plt.legend()
+
+# Display the plot
+plt.show()
 
 
 
@@ -144,53 +123,10 @@ plt.show()
 df_params2 = pd.read_csv('wind_T1_1min_unix.csv')
 df_params2 = df_params2[541280:]
 
-#%% Clean Data
+#%% In this new file, I'll use my single_sc function to return the time series and E,P values downstream
 
-# Identify rows with NaN values from USEFUL columns
-df_params2['BZ, GSE, nT'] = df_params2['BZ, GSE, nT'].replace(9999.990, np.nan)
-df_params2['KP_Speed, km/s'] = df_params2['KP_Speed, km/s'].replace(99999.900, np.nan)
-df_params2['Kp_proton Density, n/cc'] = df_params2['Kp_proton Density, n/cc'].replace(999.99, np.nan)
-
-# Check where values will be interpolated
-Bz2 = df_params2['BZ, GSE, nT'].values
-plt.plot(DateTime, Bz2)
-
-#%%
-
-# Interpolate NaN values
-for column in df_params2.columns:
-    df_params2[column] = df_params2[column].interpolate()
-
-# Drop rows with remaining NaN values
-df_params2 = df_params2.dropna()
-
-# Isolate the different USEFUL columns
-Bz2 = df_params2['BZ, GSE, nT'].values
-vtot2 = df_params2['KP_Speed, km/s'].values
-pdens2 = df_params2['Kp_proton Density, n/cc'].values
-
-# Test plotting Bz2 again with interpolation
-plt.plot(DateTime, Bz2)
-plt.show()
-plt.plot(DateTime, vtot2)
-plt.show()
-plt.plot(DateTime, pdens2)
-plt.show()
-
-#%% Extract quantities needed for SYM/H prediction and apply functions
-
-P2 = P(pdens2, vtot2)
-E2 = E(vtot2, Bz2)
-
-# Plot E and P to observe distributions
-
-plt.plot(DateTime, P2, label='P')
-plt.plot(DateTime, E2, label='E')
-plt.xlabel('Day')
-plt.ylabel('E (mV/m) & P (nPa)')
-plt.grid()
-
-plt.legend()
+time2, E2, P2, dTs2 = EP_singleSC_propagator(df_params2,'Wind')
+DateTime2 = pd.to_datetime(time2, unit='s')
 
 #%% Use model to forecast SYM/H, starting with a basic model without propagation
 
@@ -217,20 +153,18 @@ plt.grid()
 # Adding labels and title
 plt.xlabel('Day', fontsize=15)
 plt.ylabel('SYM/H (nT)', fontsize=15)
-plt.title('DSCOVR Prediction', fontsize=15)
+plt.title('Wind Prediction', fontsize=15)
 
 # Set x-axis ticks to display only whole numbers
 plt.xticks(fontsize=15)
 plt.yticks(fontsize=15)
 
 # Plot forecasted SYM/H in storm to compare to calculated SYM/H
-plt.plot(DateTime, sym_forecast2, label='DSCOVR Forecasted SYM/H')
+plt.plot(DateTime2, sym_forecast2, label='Wind Forecasted SYM/H')
 
 plt.legend(loc='upper left', fontsize=15)
 # plt.savefig(path)
 plt.show()
-
-
 
 
 
@@ -241,51 +175,10 @@ plt.show()
 df_params3 = pd.read_csv('ace_T1_1min_unix.csv')
 df_params3 = df_params3[541280:]
 
-#%% Data already cleaned for ACE from SPEDAS
+#%% In this new file, I'll use my single_sc function to return the time series and E,P values downstream
 
-# Check where values will be interpolated
-Bz3 = df_params3['Bz'].values
-plt.plot(DateTime, Bz3)
-
-#%%
-
-# Interpolate NaN values
-for column in df_params3.columns:
-    df_params3[column] = df_params3[column].interpolate()
-
-# Drop rows with remaining NaN values
-df_params3 = df_params3.dropna()
-
-# Isolate the different USEFUL columns
-Bz3 = df_params3['Bz'].values
-vx = df_params3['vx'].values
-vy = df_params3['vy'].values
-vz = df_params3['vz'].values
-vtot3 = np.sqrt(vx**2+vy**2+vz**2)
-pdens3 = df_params3['n'].values
-
-# Test plotting Bz3 again with interpolation
-plt.plot(DateTime, Bz3)
-plt.show()
-plt.plot(DateTime, vtot3)
-plt.show()
-plt.plot(DateTime, pdens3)
-plt.show()
-
-#%% Extract quantities needed for SYM/H prediction and apply functions
-
-P3 = P(pdens3, vtot3)
-E3 = E(vtot3, Bz3)
-
-# Plot E and P to observe distributions
-
-plt.plot(DateTime, P3, label='P')
-plt.plot(DateTime, E3, label='E')
-plt.xlabel('Day')
-plt.ylabel('E (mV/m) & P (nPa)')
-plt.grid()
-
-plt.legend()
+time3, E3, P3, dTs3 = EP_singleSC_propagator(df_params3,'ACE')
+DateTime3 = pd.to_datetime(time3, unit='s')
 
 #%% Use model to forecast SYM/H, starting with a basic model without propagation
 
@@ -312,14 +205,14 @@ plt.grid()
 # Adding labels and title
 plt.xlabel('Day', fontsize=15)
 plt.ylabel('SYM/H (nT)', fontsize=15)
-plt.title('DSCOVR Prediction', fontsize=15)
+plt.title('ACE Prediction', fontsize=15)
 
 # Set x-axis ticks to display only whole numbers
 plt.xticks(fontsize=15)
 plt.yticks(fontsize=15)
 
 # Plot forecasted SYM/H in storm to compare to calculated SYM/H
-plt.plot(DateTime, sym_forecast3, label='DSCOVR Forecasted SYM/H')
+plt.plot(DateTime3, sym_forecast3, label='ACE Forecasted SYM/H')
 
 # path = ('C:\\Users\\logan\\OneDrive - Imperial College London\\Uni\\Year 4\\MSci Project\\Figures\\'
 #        'step1_SYMH_prediction_2001_storm3.png')
@@ -463,7 +356,7 @@ plt.title('Cross-Correlation DSCOVR vs Wind', fontsize=14)
 plt.grid(True)
 plt.legend(fontsize=10)
 plt.tight_layout()
-plt.savefig('cross_corr_filtered_dscovr_wind.png', dpi=300)
+#plt.savefig('cross_corr_filtered_dscovr_wind.png', dpi=300)
 plt.show()
 
 print('\nPeak cross-correlation is observed', int(filtered_time_delays12[peak_index]/60), 'minutes after bow shock measurement')
