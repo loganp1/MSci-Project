@@ -25,6 +25,15 @@ def F(E, d):
 
 def SYM_forecast(SYM_i, P_i, P_iplus1, E_i):
     
+    '''Record Burton's final parameters so I don't forget when adjusting:
+        
+        a = 3.6e-5
+        b = 0.2 * gamma
+        c = 20 * gamma
+        d = -1.5e-3 * gamma
+        
+        '''
+        
     # Add constants
 
     dt = 60 # seconds in an minute, as one timestep is one minute for SYM/H
@@ -35,8 +44,8 @@ def SYM_forecast(SYM_i, P_i, P_iplus1, E_i):
     # Set your parameter values (a, b, c)
     a = 3.6e-5
     b = 0.2 * gamma
-    c = 20 * gamma
-    d = -1e-3 * gamma
+    c = 0 * gamma
+    d = -1.5e-3 * gamma
     
     derivative_term = b * (P_iplus1**0.5 - P_i**0.5)/dt
     

@@ -88,7 +88,7 @@ import numpy as np
 
 
 def multiInterp(target_time_series, convert_to_unix_epoch,*args):
-    target_time_numeric = np.array([t.timestamp() for t in target_time_series])
+    target_time_numeric = target_time_series
 
     interpolated_data = []
 
@@ -109,17 +109,17 @@ def multiInterp(target_time_series, convert_to_unix_epoch,*args):
     interpolated_data = [
         [value for value in numeric_series] for numeric_series in interpolated_data
     ]
-    interpolated_data.insert(0,datetime_to_unix_seconds(target_time_series))
+    interpolated_data.insert(0,target_time_series)
 
     return interpolated_data
 
 
 
-def dlFormat(trange,fname):
-    headers=["Time","vx","vy","vz","Bz","n"]
-    # headers=["Time","vx","vy","vz","x","y","z","Bx","By","Bz","n"]
+def dlFormat(trange,fname,time):
+    #headers=["Time","vx","vy","vz","Bz","n"]
+    headers=["Time","vx","vy","vz","x","y","z","Bx","By","Bz","n"]
     # windDat=getData(1,trange) #initial data from wind
-    # time=trim_datetimes(trange, windDat[0]['BGSE']['x'])# one minute timestamps - our target sample times
+    #time=trim_datetimes(trange, windDat[0]['BGSE']['x'])# one minute timestamps - our target sample times
     # windDat=((windDat[1]['U_eGSE']['x'],windDat[1]['U_eGSE']['y'].T[0]),
     #          (windDat[1]['U_eGSE']['x'],windDat[1]['U_eGSE']['y'].T[1]),
     #          (windDat[1]['U_eGSE']['x'],windDat[1]['U_eGSE']['y'].T[2]),
@@ -150,7 +150,7 @@ def dlFormat(trange,fname):
     
     
     aceDat=getData(2,trange)
-    time=trim_datetimes(trange, aceDat[0]['BGSEc']['x'])# one minute timestamps - our target sample times
+    
     aceDat=((aceDat[1]['V_GSE']['x'],aceDat[1]['V_GSE']['y'].T[0]),
             (aceDat[1]['V_GSE']['x'],aceDat[1]['V_GSE']['y'].T[1]),
             (aceDat[1]['V_GSE']['x'],aceDat[1]['V_GSE']['y'].T[2]),
@@ -179,7 +179,7 @@ def dlFormat(trange,fname):
     #     check=1
     #     print("Wind data faulty")
     if dfACE.isna().any().any():
-        check=1
+        check=0
         print("ACE data faulty")
     # elif dfDSC.isna().any().any():
     #     check=1
@@ -189,7 +189,7 @@ def dlFormat(trange,fname):
         #dfWind.to_csv(fname+"WIND.csv",header=headers, index=False)    
            
         
-        dfACE.to_csv(fname+"ACE.csv",header=headers, index=False)
+        dfACE.to_csv(fname,header=headers, index=False)
         
         
         
@@ -227,9 +227,13 @@ for i in range(0,len(periods)):
     print(time.time()-t1)
 
 """
+
+time = pd.read_csv('wind_T4_1min_unix.csv')['Time'].values
+
 #%%
-trange=['2019-05-13/00:00:00','2019-05-16/23:59:59']
-dlFormat(trange,"SPEDAS_2019_forecast_params_")
+
+trange=['2018-06-28/00:00:00','2019-06-27/23:59:00']
+dlFormat(trange,"ace_T4_1min_unix.csv",time)
 """
 INPUT FILENAME AND TIMERANGE HERE
 IN SECTION ABOVE IS AN EXAMPLE OF AN ITERATION THROUGH A FILE OF TIME PERIODS

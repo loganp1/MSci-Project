@@ -7,8 +7,8 @@ Created on Tue Nov  7 12:36:04 2023
 
 from datetime import datetime, timedelta
 import pandas as pd
-filename='omni_ind_params_BSN_2023_1min.csv'
-newfilename = 'omni_ind_params_BSN_2023_1min_unix.csv'
+filename='dscovr_T4_1min.csv'
+newfilename = 'dscovr_T4_1min_unix.csv'
 df=pd.read_csv(filename)
 
 def UnixConv(df, seconds=True, minutes=True,DayVar="Day",YearVar="Year"):

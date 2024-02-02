@@ -125,8 +125,8 @@ gamma = 1 # BECAUSE OUR DATAFRAMES HAVE UNITS OF nT!!!
 # Set your parameter values (a, b, c)
 a = 3.6e-5
 b = 0.2 * gamma
-c = 20 * gamma
-d = -1e-3 * gamma
+c = 0 * gamma
+d = -1.5e-3 * gamma
 
 #%% Storm1 Forecast
     

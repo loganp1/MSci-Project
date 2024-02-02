@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-df = pd.read_csv('omni_ind_params_BSN_2023_1min_unix.csv')
+df = pd.read_csv('omni_ind_params_2019_1min.csv')
 
 df['BSN location, Xgse,Re'] = df['BSN location, Xgse,Re'].replace(9999.99, np.nan)
 

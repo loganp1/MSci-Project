@@ -18,7 +18,7 @@ df_wind23_totransform = pd.read_csv('wind_2023_1min_unix.csv')
 # Also need BSN data to propagate data to correct location
 df_BSN = pd.read_csv('omni_ind_params_BSN_2023_1min_unix.csv')
 
-# Combine 2 dfs into one as need same number of points for proagate function
+# Combine 2 dfs into one as need same number of points for propagate function
 combined_df = pd.merge(df_wind23_totransform, df_BSN, on='Time', how='outer')
 
 #%%

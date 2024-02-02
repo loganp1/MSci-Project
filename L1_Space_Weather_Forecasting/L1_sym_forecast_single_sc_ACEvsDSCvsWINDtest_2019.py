@@ -72,7 +72,7 @@ def P(proton_density,velocity_mag):
 
 def E(velocity_mag,Bz):
     
-    return velocity_mag*Bz*1e-3
+    return -velocity_mag*Bz*1e-3
 
 vtot_storm = df_storm19['Speed, km/s'].values
 pdens_storm = df_storm19['Proton Density, n/cc'].values
@@ -241,6 +241,35 @@ plt.ylabel('E (mV/m) & P (nPa)')
 plt.grid()
 plt.legend()
 plt.show()
+
+#%%
+
+# Plot E for both datasets
+plt.figure(figsize=(12, 6))
+plt.plot(days_storm, E_storm, label='DSCOVR')
+plt.plot(days_storm2, E_storm2, label='Wind')
+plt.xlabel('Day in 2019',fontsize=15)
+plt.ylabel('E (mV/m)',fontsize=15)
+#plt.title('Comparison of BZ for Original and New Datasets')
+plt.xticks(range(int(days_storm[0]), int(days_storm[-1]) + 1), fontsize=15)
+plt.yticks(fontsize=15)
+plt.legend()
+plt.grid()
+plt.show()
+
+# Plot P for both datasets
+plt.figure(figsize=(12, 6))
+plt.plot(days_storm, P_storm, label='DSCOVR')
+plt.plot(days_storm2, P_storm2, label='Wind')
+plt.xlabel('Day in 2019',fontsize=15)
+plt.ylabel('P (nPa)',fontsize=15)
+#plt.title('Comparison of BZ for Original and New Datasets')
+plt.xticks(range(int(days_storm[0]), int(days_storm[-1]) + 1), fontsize=15)
+plt.yticks(fontsize=15)
+plt.legend()
+plt.grid()
+plt.show()
+
 
 #%% Use model to forecast SYM/H for the new dataset
 
