@@ -12,6 +12,7 @@ import numpy as np
 from forecasting_model import SYM_forecast
 from scipy.optimize import curve_fit
 from weightedAv_propagator_function import EP_weightedAv_propagator
+from singleSC_propagator_function import EP_singleSC_propagator
 
 #%%
 
@@ -99,6 +100,27 @@ plt.show()
 ############################################# Now compare to single spacecraft #####################################
 #%% ################################################################################################################
 
+# Forecast using ACE as just discovered it gives same result as MultiSC in my classes
+time3, E3, P3, dTs3 = EP_singleSC_propagator(df_params3,'ACE')
+DateTime3 = pd.to_datetime(time3, unit='s')
+
+#%% Use model to forecast SYM/H, starting with a basic model without propagation
+
+# Extract initial SYM/H value for model
+
+sym_forecast3 = []
+initial_sym = sym[0]  # Record this for later, as current_sym will change
+current_sym = sym[0]
+
+for i in range(len(DateTime)-1):
+    new_sym = SYM_forecast(current_sym, P3[i], P3[i+1], E3[i])
+    sym_forecast3.append(new_sym)
+    current_sym = new_sym
+
+sym_forecast3.insert(0, initial_sym)   # Add initial value we used to propagate through forecast
+
+#%%
+
 plt.figure(figsize=(12, 6))
 plt.grid()
 
@@ -112,11 +134,13 @@ plt.yticks(fontsize=15)
 
 # Plot forecasted SYM/H in storm to compare to calculated SYM/H
 plt.plot(DateTime, sym_forecast, label='Multi-Spacecraft Weighted Average Forecasted SYM/H')
-plt.plot()
+plt.plot(DateTime3, sym_forecast3)
 
 plt.legend(fontsize=15)
 
 plt.show()
+
+# EXCELLENT THEYRE DIFFERENT! Must have a bug in my classes probably plotting same data
 
 
 #%% Perform cross-correlation analysis 

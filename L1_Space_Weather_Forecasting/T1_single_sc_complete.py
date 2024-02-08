@@ -171,7 +171,7 @@ plt.show()
 ##################################################### SPACECRAFT 3 #################################################
 #%% ################################################################################################################
 
-# Read in B field and plasma data for the WIND dataset
+# Read in B field and plasma data for the ACE dataset
 df_params3 = pd.read_csv('ace_T1_1min_unix.csv')
 df_params3 = df_params3[541280:]
 

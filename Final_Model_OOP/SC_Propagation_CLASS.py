@@ -32,7 +32,7 @@ class SC_Propagation:
         self._Wind = SCdict['Wind']
         
         # Define conversion factor from Earth radii to km
-        self._Re = 6371     
+        self._Re = 6378    
         
 
     @property # Do this to update the dictionary with the cleaned dataframes
@@ -50,7 +50,7 @@ class SC_Propagation:
         return proton_density*velocity_mag**2*2e-6
     
     def E(self,velocity_mag,Bz):
-        return -velocity_mag*Bz*1e-3 
+        return -velocity_mag*Bz*2e-3 
     
     
     def getDFs(self, sc_name):
@@ -109,11 +109,13 @@ class SC_Propagation:
         # Select only the desired columns and reorder them
         self._DSCOVR = self._DSCOVR[desired_columns_order]
         
-        self._DSCOVR['P'] = self.P(self._DSCOVR['Proton Density, n/cc'], self._DSCOVR['Speed, km/s'])
-        self._DSCOVR['E'] = self.E(self._DSCOVR['Speed, km/s'], self._DSCOVR['BZ, GSE, nT'])
+        self._DSCOVR = self._DSCOVR.copy()
+        self._DSCOVR.loc[:, 'P'] = self.P(self._DSCOVR['Proton Density, n/cc'], self._DSCOVR['Speed, km/s'])
+        self._DSCOVR.loc[:, 'E'] = self.E(self._DSCOVR['Speed, km/s'], self._DSCOVR['BZ, GSE, nT'])
         
         # Drop the original columns
-        self._DSCOVR.drop(['Proton Density, n/cc', 'Speed, km/s', 'BZ, GSE, nT'], axis=1, inplace=True)
+        self._DSCOVR = self._DSCOVR.drop(['Proton Density, n/cc', 'Speed, km/s', 'BZ, GSE, nT'], axis=1)
+
         
             
         # WIND
@@ -158,11 +160,12 @@ class SC_Propagation:
         # Select only the desired columns and reorder them
         self._Wind = self._Wind[desired_columns_order]
         
+        self._Wind = self._Wind.copy()
         self._Wind['P'] = self.P(self._Wind['Kp_proton Density, n/cc'], self._Wind['KP_Speed, km/s'])
         self._Wind['E'] = self.E(self._Wind['KP_Speed, km/s'], self._Wind['BZ, GSE, nT'])
         
         # Drop the original columns
-        self._Wind.drop(['Kp_proton Density, n/cc', 'KP_Speed, km/s', 'BZ, GSE, nT'], axis=1, inplace=True)
+        self._Wind = self._Wind.drop(['Kp_proton Density, n/cc', 'KP_Speed, km/s', 'BZ, GSE, nT'], axis=1)
             
         # ACE (already cleaned)
         # Interpolate NaN values
@@ -187,7 +190,8 @@ class SC_Propagation:
         self._ACE = self._ACE[desired_columns_order]
         
         # Need a velocity magnitude column for ACE
-        self._ACE['v'] = np.sqrt(self._ACE['vx']**2+self._ACE['vy']**2+self._ACE['vz']**2)
+        self._ACE = self._ACE.copy()
+        self._ACE['v'] = np.sqrt(self._ACE['vx']**2+self._ACE['vy']**2+self._ACE['vz']**2).values
         self._ACE['P'] = self.P(self._ACE['n'], self._ACE['v'])
         self._ACE['E'] = self.E(self._ACE['v'], self._ACE['Bz'])
         
@@ -222,7 +226,7 @@ class SC_Propagation:
         s = self._SCdict[sc_name].to_numpy().T
         
         # Chosen target (BSN) location at (X=14,Y=0,Z=0)
-        BSN_x = np.full(len(self._ACE),14*self._Re)
+        BSN_x = np.full(len(self._ACE),10*self._Re)
         BSN_y = np.full(len(self._ACE),0)
         BSN_z = np.full(len(self._ACE),0)
         
@@ -239,70 +243,179 @@ class SC_Propagation:
         return pd.DataFrame({'Time': s[0], 'Efield': s[8], 'Pressure': s[7], 'Time Shifts': Ts})
     
     
+    
+    def getWeights(self,ri):
+        r0=50*6378
+        return np.exp(-1*ri/r0)
+    
 
-    def WA_method(self,sList,indS):
+    # def WA_method(self,sList,indS):
         
+    #     """
+        
+    #     Function that takes multiple spacecraft data from L1 [sList], and the location we are propagating to 
+    #     [sRef], and returns propagated data with its corresponding time series using the weighted average method.
+
+    #     INPUTS:
+    #     - sList : list/array
+    #     Spacecraft data: [[t0,vx0,vy0,vz0,x0,y0,z0,DATA],[t1,vx1,vy1,vz1,x1,y1,z1,...],...].T 
+            
+    #     - sRef: list/array                      
+    #     Target: [[x0,y0,z0],[x1,y1,z1],...].T
+        
+    #     indS: int
+    #     Index of data you want to average in s
+        
+    #     RETURNS:
+    #     - weighted    
+
+    #     """
+
+    #     # Chosen target (BSN) location at (X=14,Y=0,Z=0)
+    #     BSN_x = np.full(len(self._ACE),14*self._Re)
+    #     BSN_y = np.full(len(self._ACE),0)
+    #     BSN_z = np.full(len(self._ACE),0)
+        
+    #     array_BSN = np.array([BSN_x,BSN_y,BSN_z])
+        
+        
+    #     weights=[]
+    #     for s in sList:
+    #         Ts=(array_BSN[0]-s[4])/(s[1])
+    #         s=[s[0]+Ts,s[1],s[2],s[3],np.array(s[4])+s[1]*Ts,
+    #                                    np.array(s[5])+s[2]*Ts,
+    #                                    np.array(s[6])+s[3]*Ts,
+    #                                    s[7],s[8]]
+    #         deltay=s[5]-array_BSN[1]
+    #         deltaz=s[6]-array_BSN[2]
+    #         offsets=np.sqrt(deltay**2+deltaz**2)
+    #         weights.append(np.array([self.getWeights(ri) for ri in offsets]))
+            
+    #     weights=np.array(weights).T  
+    #     weighted_qtty=[]
+        
+    #     for i in range(0,len(sList[0].T)):
+    #         tempBz=[]
+    #         for data in sList:
+    #             tempBz.append(data[indS][i])
+    #         B=sum(np.array(tempBz)*weights[i])/sum(weights[i])
+    #         weighted_qtty.append(B)
+        
+    #     shifted_time_series = np.asarray(s[0])      
+    #     return weighted_qtty, shifted_time_series
+    
+    
+    
+
+    def alignInterp(self,datasets):
+        """
+        Align time series within datasets and interpolate data for each dataset at one-minute intervals.
+    
+        Parameters:
+        datasets: Variable number of datasets, each containing time series and data arrays.
+    
+        Returns:
+        list of numpy.ndarray: List of datasets with new data and time series.
         """
         
-        Function that takes multiple spacecraft data from L1 [sList], and the location we are propagating to 
-        [sRef], and returns propagated data with its corresponding time series using the weighted average method.
-
-        INPUTS:
-        - sList : list/array
-        Spacecraft data: [[t0,vx0,vy0,vz0,x0,y0,z0,DATA],[t1,vx1,vy1,vz1,x1,y1,z1,...],...].T 
-            
-        - sRef: list/array                      
-        Target: [[x0,y0,z0],[x1,y1,z1],...].T
+        # Extract time series and data arrays for each dataset
+        time_series_list = [dataset[0] for dataset in datasets]
+        #print(time_series_list)
+        data_arrays_list = [dataset[1:] for dataset in datasets]
+    
+        # Find the common start and end times for all datasets
+        common_start_time = max([min(time) for time in time_series_list])
+        common_end_time = min([max(time) for time in time_series_list])
+    
+        # Create the common time series within the overlapping time range at one-minute intervals
+        interpolated_time_series = np.arange(common_start_time, common_end_time, 60)
+    
+        # Interpolate data for each dataset
+        interpolated_data = [
+            [np.interp(interpolated_time_series, time_series, data) for data in data_arrays]
+            for time_series, data_arrays in zip(time_series_list, data_arrays_list)
+        ]
+    
+        # Create a list of datasets with new data and time series
+        result_datasets = [
+            [np.array(interpolated_time_series)] + [np.array(data) for data in data_arrays]
+            for interpolated_time_series, data_arrays in zip(interpolated_time_series, interpolated_data)
+        ]
+        for dataset in result_datasets:
+            dataset[0]=interpolated_time_series
+        return result_datasets
+    
+    
+    
+    def WA_method(self,sList,indS):
+        """
+        USAGE: Would recommend calling function and iterating through indS values you want
+        No functionality to pass in and iterate through a list of indices.
+        Interpolation/propagation/weight determination are all vectorized so should be quick enough
+    
+        Parameters
+        ----------
+        sList : list/array
+        List of spacecraft measurements. Elements in this list should be of the form:
+        [t0,vx0,vy0,vz0,x0,y0,z0,DATA],[t1,vx1,vy1,vz1,x1,y1,z1,...].T lol.
+        
         
         indS: int
         Index of data you want to average in s
         
-        RETURNS:
-        - weighted    
-
+        Returns
+        -------
+        sListNew: List
+        New list of propagated/modified s/c data
+        
+        [sListNew[0][0],weightedBs]: List
+        List containing averaged data and averaged data along with its
+        interpolated time series
+        
+        
+    
         """
-        
-        # Chosen target (BSN) location at (X=14,Y=0,Z=0)
-        BSN_x = np.full(len(self._ACE),14*self._Re)
-        BSN_y = np.full(len(self._ACE),0)
-        BSN_z = np.full(len(self._ACE),0)
-        
-        array_BSN = np.array([BSN_x,BSN_y,BSN_z])
-        
-        def getWeights(ri):
-            r0=50*6378
-            return np.exp(-1*ri/r0)
-        
+
         weights=[]
+        i=0
         for s in sList:
-            Ts=(array_BSN[0]-s[4])/(s[1])
+            # Propagated location we are using here is (14Re,0,0)
+            Ts=(10*self._Re-s[4])/(s[1])#calculates prop time
             s=[s[0]+Ts,s[1],s[2],s[3],np.array(s[4])+s[1]*Ts,
                                        np.array(s[5])+s[2]*Ts,
                                        np.array(s[6])+s[3]*Ts,
-                                       s[7],s[8]]
-            deltay=s[5]-array_BSN[1]
-            deltaz=s[6]-array_BSN[2]
-            offsets=np.sqrt(deltay**2+deltaz**2)
-            weights.append(np.array([getWeights(ri) for ri in offsets]))
-            
-        weights=np.array(weights).T  
-        weighted_qtty=[]
-        
-        for i in range(0,len(sList[0].T)):
+                                       s[7],s[8]] #modifies position and time in list
+            sList[i]=s
+            i+=1
+        sListNew=self.alignInterp(sList)    
+        i=0
+        for s in sListNew:
+            offsets=np.sqrt(s[5]**2+s[6]**2) #gets offsets and weights
+            weights.append(np.array([self.getWeights(ri) for ri in offsets]))
+            sListNew[i]=s
+            i+=1
+        weights=np.array(weights).T
+    
+        weightedBs=[]
+        for i in range(0,len(np.array(sListNew[0]).T)):
             tempBz=[]
-            for data in sList:
-                tempBz.append(data[indS][i])
+            for data in sListNew:
+                tempBz.append(data[indS][i]) #weighted averages the quantity s[indS]
             B=sum(np.array(tempBz)*weights[i])/sum(weights[i])
-            weighted_qtty.append(B)
+            weightedBs.append(B)
         
-        shifted_time_series = np.asarray(s[0])      
-        return weighted_qtty, shifted_time_series
+        return sListNew[0][0],weightedBs
     
     
     def multiSC_WA_Propagate(self):
         
-        new_E, new_time = self.WA_method(self._multiSC,8)
-        new_P, new_time = self.WA_method(self._multiSC,7)
+        # new_E, new_time = self.WA_method(self._multiSC,8)
+        # new_P, new_time = self.WA_method(self._multiSC,7)
+        
+        # return pd.DataFrame({'Time': new_time, 'Efield': new_E, 'Pressure': new_P})
+        
+        new_time, new_E = self.WA_method(self._multiSC,8)
+        new_time, new_P = self.WA_method(self._multiSC,7)
         
         return pd.DataFrame({'Time': new_time, 'Efield': new_E, 'Pressure': new_P})
         

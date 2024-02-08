@@ -47,7 +47,7 @@ class SYM_H_Model:
         a = 3.6e-5
         b = 0.2 * gamma
         c = 0 * gamma
-        d = -1.5e-3 * gamma
+        d = -1.0e-3 * gamma
         
         derivative_term = b * (P_iplus1**0.5 - P_i**0.5)/dt
         

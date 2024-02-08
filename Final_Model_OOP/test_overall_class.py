@@ -19,7 +19,7 @@ from Space_Weather_Forecasting_CLASS import Space_Weather_Forecast
 #%%
 
 # Load data
-df_ACE = pd.read_csv('ace_T2_1min_unix.csv')
+df_ACE = pd.read_csv('ace_T4_1min_unix.csv')
 df_DSCOVR = pd.read_csv('dscovr_T2_1min_unix.csv')
 df_Wind = pd.read_csv('wind_T2_1min_unix.csv')
 df_SYM = pd.read_csv('SYM2_unix.csv')
@@ -30,11 +30,53 @@ sc_dict = {'ACE': df_ACE, 'DSCOVR': df_DSCOVR, 'Wind': df_Wind}
 # Load this into Space_Weather_Forecast and watch the magic work!
 myclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
 
-#%% Now propagate choosing which method/spacecraft! 
+#%% Test date filter function & DateTime converter
 
-sym_forecast, time_series = myclass.Forecast_SYM_H('multi')
+myclass.unix_to_DateTime()
 
-#%% Plot results
+start_date = '2017-01-01 00:00:00'
+end_date = '2017-02-01 00:00:00'
 
-plt.plot(time_series, sym_forecast)
+#myclass.filter_dates(start_date,end_date)
 
+#%% Testing - All 4 prediction methods
+
+time_series, sym_forecast1, sym_forecast2, sym_forecast3, sym_forecast_mul = myclass.Compare_Forecasts('both')
+
+#%% 
+
+plt.plot(time_series, sym_forecast1,label='ACE')
+plt.plot(time_series, sym_forecast2,label='DSCOVR')
+plt.plot(time_series, sym_forecast3,label='Wind')
+plt.plot(time_series, sym_forecast_mul,label='Multi')
+
+plt.legend()
+
+
+#%% Testing - All 3 single spacecraft methods
+
+time_series, sym_forecast1, sym_forecast2, sym_forecast3 = myclass.Compare_Forecasts('single')
+
+#%%
+
+plt.plot(time_series, sym_forecast1,label='ACE')
+plt.plot(time_series, sym_forecast2,label='DSCOVR')
+plt.plot(time_series, sym_forecast3,label='Wind')
+
+plt.legend()
+
+
+#%% Testing - Single spacecraft
+
+time_series, sym_forecast = myclass.Compare_Forecasts('single','ACE')
+
+#%% 
+
+plt.plot(time_series, sym_forecast,label='ACE')
+
+plt.legend()
+
+
+#%% Check where nans exist in NON-filtered ACE data as seems to be loads in ACE
+
+nan_info = myclass.check_nan_values('ACE')

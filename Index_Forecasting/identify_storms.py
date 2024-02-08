@@ -77,3 +77,22 @@ sym4 = df_params4['SYM/H, nT']
 
 # Identify storm events for the New Dataset 4
 plt.plot(time4, sym4)
+
+
+#%%
+
+df = pd.read_csv('SYM_data_unix.csv')
+time = pd.to_datetime(df['Time'], unit='s')
+sym = df['SYM/H, nT']
+time[0] = pd.to_datetime('2016-06-28 00:00:00.111111111')  # Checking decimals work for other file as having trouble
+#%%
+plt.plot(time, sym)
+
+# Customize x-axis ticks and labels
+plt.xticks(rotation=45, ha='right')  # Rotate the labels for better visibility
+
+plt.show()
+
+#%%
+
+max_index = sym.idxmin()
