@@ -6,6 +6,7 @@ Created on Mon Feb  5 20:07:44 2024
 """
 
 import sys
+import scipy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ sys.path.append(r"C:\Users\logan\OneDrive - Imperial College London\Uni\Year 4\M
                 r"\Final_Model_OOP")
 
 from Space_Weather_Forecasting_CLASS import Space_Weather_Forecast
+from align_and_interpolate import align_and_interpolate_datasets
 
 
 #%%
@@ -66,9 +68,9 @@ tm, t1, t2, t3, sym_forecast1, sym_forecast2, sym_forecast3, sym_forecast_mul = 
 #%% 
 
 sym_real = myclass.GetSYMdata()['SYM/H, nT']
-time_series = myclass.GetSYMdata()['Time']
+treal = myclass.GetSYMdata()['Time']
 
-time_series = pd.to_datetime(time_series,unit='s')
+#treal = pd.to_datetime(treal,unit='s')
 
 # Define a custom set of distinct colors
 custom_colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
@@ -81,10 +83,10 @@ plt.plot(t1, sym_forecast1, label='ACE', color=custom_colors[0], linewidth=l)
 plt.plot(t2, sym_forecast2, label='DSCOVR', color=custom_colors[1], linewidth=l)
 plt.plot(t3, sym_forecast3, label='Wind', color=custom_colors[2], linewidth=l)
 plt.plot(tm, sym_forecast_mul, label='Multi', color=custom_colors[3], linewidth=l)
-plt.plot(time_series, sym_real, label='SYM/H', color=custom_colors[4], linewidth=l)
+plt.plot(treal, sym_real, label='SYM/H', color=custom_colors[4], linewidth=l)
 
 plt.xticks(rotation=0, 
-           ticks=pd.date_range(start=time_series.min(), end=time_series.max(), freq='5D'))  # Set explicit ticks
+           ticks=pd.date_range(start=treal.min(), end=treal.max(), freq='5D'))  # Set explicit ticks
 
 # Use DateFormatter to customize the format of dates
 date_format = mdates.DateFormatter('%d-%m')
@@ -100,17 +102,30 @@ plt.tight_layout()
 plt.savefig('storm_data_range_forecast.png',dpi=500)
 plt.show()
 
+#%% To do cross correlation we need a common time series
+
+# Turn series' into lists so we can index properly
+tm, t1, t2, t3, treal, sym_real = (tm.tolist(), t1.tolist(), t2.tolist(), t3.tolist(), treal.tolist(), 
+                                   sym_real.tolist())
+
+
 #%%
+
+# Form 2d lists for time series' + data
+mul_list = [tm,sym_forecast_mul]
+real_list = [treal,sym_real]
+
+common_time, sym_forecast_mulA, sym_realA = align_and_interpolate_datasets(mul_list,real_list,len(sym_real))
 
 from cross_correlation import cross_correlation
 
-lags = np.arange(-len(t1) + 1, len(t1))
+lags = np.arange(-len(common_time) + 1, len(common_time))
 dt = 60
 
 # Calculate corresponding time delays
 time_delays = lags * dt
 
-time_delays,cross_corr_values = cross_correlation(sym_forecast1, sym_real,time_delays)
+time_delays,cross_corr_values = cross_correlation(sym_forecast_mulA, sym_realA, time_delays)
 
 # Plot the cross-correlation values
 plt.figure(figsize=(8, 5))
@@ -170,3 +185,24 @@ plt.tight_layout()
 plt.show()
 
 
+#%% Compare SYM extrema to forecast extrema
+
+#sym_real = sym_real.tolist()
+# Reset indices of time series as otherwise its indices are for the slice in larger df
+time_series = time_series.reset_index(drop=True)
+
+#%%
+
+time_min_mul = t1[sym_forecast_mul.index(min(sym_forecast_mul))]
+time_min_sym = time_series[sym_real.index(min(sym_real))]
+
+#%% Okay, so peak difference around 30 mins which is ~accurate according to Burton et al.
+### So let's try scipy's CC method instead
+
+cc_test = scipy.signal.correlate(sym_forecast_mul, sym_real, mode='full', method='auto')
+
+lags = np.arange(-len(t1) + 1, len(t1))
+dt = 60
+time_delays = lags * dt
+
+plt.plot(time_delays,cc_test)

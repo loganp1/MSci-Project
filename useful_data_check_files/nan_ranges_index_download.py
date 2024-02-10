@@ -7,12 +7,28 @@ Created on Thu Feb  8 12:17:44 2024
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from filter_good_data import modify_list
 
 df = pd.read_csv('ace_data_unix.csv')
 
+#%%
+
 nan_indices = df[df['n'].isnull()].index.tolist()
 
-print(nan_indices)
+#print(nan_indices)
+
+#%% Plot time vs n to see timescale of variations and what sort of range interpolation may be appr. for
+
+plt.plot(df['Time'],df['n'])
+plt.show()
+
+# Interpolate linearly
+df_interp = df.interpolate()
+
+# Replot
+plt.plot(df_interp['Time'],df_interp['n'])
+plt.show()
 
 #%%
 
@@ -43,3 +59,21 @@ gaps = []
 
 for i in range(len(start_indices)-1):
     gaps.append(np.asarray(start_indices[i+1]) - np.asarray(end_indices[i]))
+    
+    
+#%%
+
+gaps_in_hours = np.asarray(gaps)/60
+
+#%% Plot GOOD ranges 
+
+gdata_inds = np.asarray(end_indices)-np.asarray(start_indices)
+
+plt.hist(gdata_inds,bins=1000)
+
+#%% Create array in required form for Ned's filter_good_data function
+
+good_data = np.array([[df['Time'][start], df['Time'][end]] for start, end in zip(start_indices, end_indices)])
+
+np.save('ace_nNaNs_max10_times.npy', good_data)
+
