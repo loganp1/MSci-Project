@@ -8,6 +8,7 @@ Created on Sat Feb  3 17:34:21 2024
 import sys
 from datetime import datetime
 import pandas as pd
+import numpy as np
 
 # Add path to the directory containing classes
 sys.path.append(r"C:\Users\logan\OneDrive - Imperial College London\Uni\Year 4\MSci Project\MSci-Project"
@@ -15,6 +16,8 @@ sys.path.append(r"C:\Users\logan\OneDrive - Imperial College London\Uni\Year 4\M
 
 from SC_Propagation_CLASS import SC_Propagation
 from SYM_H_Model_CLASS import SYM_H_Model
+from align_and_interpolate import align_and_interpolate_datasets
+from cross_correlation import cross_correlation
 
 
 # Create final class which inherits the other 2's attributes
@@ -174,7 +177,8 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             #time_series3 = pd.to_datetime(df_prop3['Time'],unit='s')
             #time_seriesm = pd.to_datetime(df_propm['Time'],unit='s')
             
-            return time_seriesm, time_series1, time_series2, time_series3, sym_forecastm, sym_forecast1, sym_forecast2, sym_forecast3
+            return (time_seriesm, time_series1, time_series2, time_series3, sym_forecastm, sym_forecast1, 
+                   sym_forecast2, sym_forecast3)
             
         else:
             class2 = SYM_H_Model(df_prop,sym0)
@@ -207,5 +211,43 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
 
         
         
+    def GetStats(self, chosen_pair, chosen_stats):
         
+        '''
+        Function to calculate cross-correlation between a chosen pair of distributions
+        chosen_ pair: ['spacecraft1/multi/realsym','spacecraft2/multi/realsym']
+        chosen_stats: 'sep' or 'transverse sep'
+        '''
+
+        tm, t1, t2, t3, sym1, sym2, sym3, sym_mul = self.Compare_Forecasts('both')
+
+        sym_real = self.GetSYMdata()['SYM/H, nT']
+        treal = self.GetSYMdata()['Time']
+        
+        # Turn series' into lists so we can index properly
+        tm, t1, t2, t3, treal, sym_real = (tm.tolist(), t1.tolist(), t2.tolist(), t3.tolist(), treal.tolist(), 
+                                           sym_real.tolist())
+        
+        # Form 2d lists for time series' + data
+        ace_list = [t1,sym1]
+        dsc_list = [t2,sym2]
+        win_list = [t3,sym3]
+        mul_list = [tm,sym_mul]
+        real_list = [treal,sym_real]
+        
+        # Make dictionary so we can do everything in one go (instead of if statements for inputted pair)
+        newdic = {'ACE':ace_list,'DSCOVR':dsc_list,'Wind':win_list,'multi':mul_list,'realsym':real_list}
+        
+        # Now apply which pair we've chosen - create common time series & corresponding data
+        common_time, symA, symB = align_and_interpolate_datasets(newdic[chosen_pair[0]],
+                                                                 chosen_pair[1],len(sym_real))
+        symA, symB = symA[0], symB[0]
+        
+        # Cross correlation
+        time_delays,cross_corr_values = cross_correlation(symA, symB, common_time)
+        peak_index = np.argmax(np.abs(cross_corr_values))
+
+                                                  
+    
+    
         

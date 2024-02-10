@@ -109,13 +109,21 @@ tm, t1, t2, t3, treal, sym_real = (tm.tolist(), t1.tolist(), t2.tolist(), t3.tol
                                    sym_real.tolist())
 
 
-#%%
+#%% Multi-spacecraft vs Real
 
 # Form 2d lists for time series' + data
 mul_list = [tm,sym_forecast_mul]
 real_list = [treal,sym_real]
 
 common_time, sym_forecast_mulA, sym_realA = align_and_interpolate_datasets(mul_list,real_list,len(sym_real))
+sym_forecast_mulA, sym_realA = sym_forecast_mulA[0], sym_realA[0]
+
+# Before doing cross correlation let's plot these to test with the common time series
+
+plt.plot(common_time, sym_forecast_mulA)
+plt.plot(common_time, sym_realA)
+
+#%%
 
 from cross_correlation import cross_correlation
 
@@ -127,10 +135,12 @@ time_delays = lags * dt
 
 time_delays,cross_corr_values = cross_correlation(sym_forecast_mulA, sym_realA, time_delays)
 
+peak_index = np.argmax(np.abs(cross_corr_values))
+
 # Plot the cross-correlation values
 plt.figure(figsize=(8, 5))
 plt.plot(time_delays/60, cross_corr_values, label='Cross-correlation')
-#plt.axvline(time_delays[peak_index]/60, color='red', linestyle='--', label='Peak Correlation')
+plt.axvline(time_delays[peak_index]/60, color='red', linestyle='--', label='Peak Correlation')
 plt.xlabel('Time Delay (minutes)', fontsize=12)
 plt.ylabel('Cross-Correlation', fontsize=12)
 plt.title('Cross-Correlation DSCOVR vs Wind Forecasts', fontsize=14)
@@ -140,9 +150,61 @@ plt.tight_layout()
 #plt.savefig('cross_corr_dscovr_wind.png', dpi=300)
 plt.show()
 
-peak_index = np.argmax(np.abs(cross_corr_values))
-print('\nPeak cross-correlation between DSCOVR and ACE is observed at a time delay of', 
+print('\nPeak cross-correlation between the multi-spacecraft prediction & real SYM/H is observed at a time delay of', 
       int(time_delays[peak_index]/60), 'minutes')
+
+# Find the index where time_delays is 0
+zero_delay_index = np.where(time_delays == 0)[0]
+
+# Print the cross-correlation at time delay = 0
+print(f'Cross-correlation at 0 time delay: {cross_corr_values[zero_delay_index][0]}')
+print(f'Max cross-correlation: {max(cross_corr_values)}')
+
+#%% ACE vs DSCOVR
+
+# Form 2d lists for time series' + data
+ace_list = [t1,sym_forecast1]
+dsc_list = [t2,sym_forecast2]
+
+common_time, sym_forecast1A, sym_forecast2A = align_and_interpolate_datasets(ace_list,dsc_list,len(sym_real))
+sym_forecast1A, sym_forecast2A = sym_forecast1A[0], sym_forecast2A[0]
+
+# Before doing cross correlation let's plot these to test with the common time series
+
+plt.plot(common_time, sym_forecast1A)
+plt.plot(common_time, sym_forecast2A)
+
+#%%
+
+from cross_correlation import cross_correlation
+
+time_delays,cross_corr_values = cross_correlation(sym_forecast1A, sym_forecast2A, common_time)
+
+peak_index = np.argmax(np.abs(cross_corr_values))
+
+# Plot the cross-correlation values
+plt.figure(figsize=(8, 5))
+plt.plot(time_delays/60, cross_corr_values, label='Cross-correlation')
+plt.axvline(time_delays[peak_index]/60, color='red', linestyle='--', label='Peak Correlation')
+plt.xlabel('Time Delay (minutes)', fontsize=12)
+plt.ylabel('Cross-Correlation', fontsize=12)
+plt.title('Cross-Correlation DSCOVR vs Wind Forecasts', fontsize=14)
+plt.grid(True)
+plt.legend(fontsize=10)
+plt.tight_layout()
+#plt.savefig('cross_corr_dscovr_wind.png', dpi=300)
+plt.show()
+
+print('\nPeak cross-correlation between the multi-spacecraft prediction & real SYM/H is observed at a time delay of', 
+      int(time_delays[peak_index]/60), 'minutes')
+
+# Find the index where time_delays is 0
+zero_delay_index = np.where(time_delays == 0)[0]
+
+# Print the cross-correlation at time delay = 0
+print(f'Cross-correlation at 0 time delay: {cross_corr_values[zero_delay_index][0]}')
+print(f'Max cross-correlation: {max(cross_corr_values)}')
+
 
 #%%
 
@@ -189,20 +251,34 @@ plt.show()
 
 #sym_real = sym_real.tolist()
 # Reset indices of time series as otherwise its indices are for the slice in larger df
-time_series = time_series.reset_index(drop=True)
+#time_series = time_series.reset_index(drop=True)
 
 #%%
 
 time_min_mul = t1[sym_forecast_mul.index(min(sym_forecast_mul))]
-time_min_sym = time_series[sym_real.index(min(sym_real))]
+time_min_sym = treal[sym_real.index(min(sym_real))]
 
 #%% Okay, so peak difference around 30 mins which is ~accurate according to Burton et al.
 ### So let's try scipy's CC method instead
 
-cc_test = scipy.signal.correlate(sym_forecast_mul, sym_real, mode='full', method='auto')
+cc_test = scipy.signal.correlate(sym_forecast_mulA, sym_realA, mode='full', method='auto')
 
-lags = np.arange(-len(t1) + 1, len(t1))
+lags = np.arange(-len(common_time) + 1, len(common_time))
 dt = 60
 time_delays = lags * dt
 
 plt.plot(time_delays,cc_test)
+
+peak_index = np.argmax(np.abs(cc_test))
+
+print('\nPeak cross-correlation between the multi-spacecraft prediction & real SYM/H is observed at a time delay of', 
+      int(time_delays[peak_index]/60), 'minutes')
+
+
+#%% Check spacecraft separations over range we've isolated
+
+ad_seplist = df_ACEfilt['x'].values - df_DSCfilt['Wind, Xgse,Re'].values
+
+plt.plot(pd.to_datetime(df_ACEfilt['Time'],unit='s'),ad_seplist)
+date_format = mdates.DateFormatter('%d-%m')
+plt.gca().xaxis.set_major_formatter(date_format)

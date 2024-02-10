@@ -27,6 +27,10 @@ df_DSCOVR = pd.read_csv('dscovr_data_unix.csv')
 df_Wind = pd.read_csv('wind_data_unix.csv')
 df_SYM = pd.read_csv('SYM_data_unix.csv')
 
+#%%
+
+df_ACE['DateTime'] = pd.to_datetime(df_ACE['Time'], unit='s')
+
 #%% Now split the data based on the max 10 nans in a row filter for ACE (as density data so poor)
 
 min_max_times = np.load('ace_nNaNs_max10_times.npy')
