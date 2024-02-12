@@ -57,6 +57,10 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         
         return self._SYMr
     
+    def GetSCsubDFs(self):
+        
+        return [self._ace_dfs,self._dsc_dfs,self._wnd_dfs]
+    
     
     def check_nan_values(self, sc_name):
         """
@@ -107,7 +111,9 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         
         
     # Create function which uses all the methods defined to perform the forecast
-    def Forecast_SYM_H(self, chosen_method, chosen_spacecraft = None):
+    def Forecast_SYM_H(self, class1, chosen_method, chosen_spacecraft = None):
+        
+        '''class1 is the propagation class (I've had to edit this as was calling required_form too often)'''
         
         # Ensure chosen_method is either 'single' or 'multi'
         assert chosen_method in ['single', 'multi', 'both'], \
@@ -116,11 +122,16 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         # Extract initial SYM/H value ready for forecasting
         sym0 = self._SYMr['SYM/H, nT'].values[0]
 
-        # Create an object from SC_Propagattion sub-class to propagate the data downstream
-        class1 = SC_Propagation(self._SC_dict)
+        # # Create an object from SC_Propagation sub-class to propagate the data downstream
+        # class1 = SC_Propagation(self._SC_dict)
 
-        # Put the data in this class in required form for propagation (probably should do this auto in class)
-        class1.required_form()
+        # # Put the data in this class in required form for propagation (probably should do this auto in class)
+        # # This function gives me so much grief!! It's poorly structured, but I'll add in this flag to track it so
+        # # that it's only uses once, the first time it's needed.
+        # if not self._class1_initialized:
+        #     # If required_form() hasn't been called, call it
+        #     class1.required_form()
+        #     self._class1_initialized = True
 
         # If chosen_method = single: propagate chosen_spacecraft using single spacecraft method
         if chosen_method == 'single':
@@ -258,6 +269,11 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         dsc_dfs = []
         wnd_dfs = []
         
+        # Try and get all dfs in required form before splitting
+        class_prop = SC_Propagation(self._SC_dict)
+        class_prop.required_form()
+        self._SC_dict = class_prop._SCdict
+        
         # Split the DataFrame based on the min_max_times
         for i in range(len(split_times)):
             start_time, end_time = split_times[i]
@@ -285,10 +301,12 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         Preferably put 'real' second in list as len(element 1) is used which will make code run faster if not sym
         
         '''
+            
         
         zvCCs = []
         maxCCs = []
         deltaTs = []
+        
         
         for i in range(len(self._ace_dfs)):
             
@@ -297,20 +315,35 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             # We plug in the full sym as don't want to remove important outside-edge data 
             myclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=self._SYMr)
             
+            
+            
+            # # Put sub-dataframe section in required form HERE
+            
+            # # Create an object from SC_Propagation sub-class to propagate the data downstream
+            class_prop = SC_Propagation(sc_dict)
+
+            # if first == True:
+            #     # Put the data in this class in required form for propagation if 1st run otherwise will 
+            #     # multiply by Re too many times as stored in the class ready for next run
+            #     class_prop.required_form()
+            #     # Put this class1 into the 1st argument for Forecast_SYM_H
+        
+        
+            
             # For first in pair
             if chosen_pair[0] in ['ACE', 'DSCOVR', 'Wind']:
-                sym1, t1 = myclass.Forecast_SYM_H('single', chosen_pair[0])
+                sym1, t1 = myclass.Forecast_SYM_H(class_prop, 'single', chosen_pair[0])
 
             elif chosen_pair[0] == 'multi':
-                sym1, t1 = myclass.Forecast_SYM_H('multi')
+                sym1, t1 = myclass.Forecast_SYM_H(class_prop, 'multi')
             elif chosen_pair[0] == 'real':
                 sym1, t1 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
                 
             # For second in pair
             if chosen_pair[1] in ['ACE', 'DSCOVR', 'Wind']:
-                sym2, t2 = myclass.Forecast_SYM_H('single', chosen_pair[1])
+                sym2, t2 = myclass.Forecast_SYM_H(class_prop, 'single', chosen_pair[1])
             elif chosen_pair[1] == 'multi':
-                sym2, t2 = myclass.Forecast_SYM_H('multi')
+                sym2, t2 = myclass.Forecast_SYM_H(class_prop, 'multi')
             elif chosen_pair[1] == 'real':
                 sym2, t2 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
             
@@ -343,7 +376,11 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             deltaTs.append(deltaT)
             
             print(i)
-            
+            #first = False
+           
+        # Get deltaTs as list of elements (not list of lots of 1-element lists!)
+        deltaTs = [arr[0] for arr in deltaTs]    
+           
         return zvCCs, maxCCs, deltaTs
             
     

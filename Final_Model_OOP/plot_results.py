@@ -35,7 +35,20 @@ for i in range(len(split_times)):
     wnd_dfs.append(subset_df_Wind)
     
     
-#%% Calculate separation values (average) over each 4 hour period
+    
+#%% ACE yz offset from origin
+
+Ayz_offset = []
+
+for i in range(len(ace_dfs)):
+    
+    sepvec = np.array([[np.mean(ace_dfs[i]['y'])],
+                      [np.mean(ace_dfs[i]['z'])]])
+    
+    sepval = np.linalg.norm(sepvec)
+    Ayz_offset.append(sepval)    
+    
+#%% ACE - DSCOVR separation distance
 
 ADsep = []
 
@@ -48,7 +61,7 @@ for i in range(len(ace_dfs)):
     sepval = np.linalg.norm(sepvec)
     ADsep.append(sepval)
     
-#%% 
+#%% ACE - DSCOVR yz offset
     
 ADyz_offset = []
                        
@@ -60,30 +73,21 @@ for i in range(len(ace_dfs)):
     sepval = np.linalg.norm(sepvec)
     ADyz_offset.append(sepval)
     
-    
-#%%
-
-Ayz_offset = []
-
-for i in range(len(ace_dfs)):
-    
-    sepvec = np.array([[np.mean(ace_dfs[i]['y'])],
-                      [np.mean(ace_dfs[i]['z'])]])
-    
-    sepval = np.linalg.norm(sepvec)
-    Ayz_offset.append(sepval)
-    
 
 #%%
 
-AvsR_zvCC = np.load('AvsR_zvCC.npy')
-DvsR_zvCC = np.load('DvsR_zvCC.npy')
-MvsR_zvCC = np.load('MvsR_zvCC.npy')
+AvsD_zvCC = np.load('AvsD_zvCCs.npy')
+# DvsR_zvCC = np.load('DvsR_zvCCs.npy')
+# MvsR_zvCC = np.load('MvsR_zvCCs.npy')
+# AvsW_zvCC = np.load('AvsW_zvCCs.npy')
 
-plt.scatter(Ayz_offset,AvsR_zvCC,marker='x')
-
+plt.scatter(ADyz_offset,AvsD_zvCC,marker='x')
 plt.xlabel('Y-Z Offset')
 plt.ylabel('Cross Correlation with Measured SYM/H')
+
+# plt.scatter(AWyz_offset,AvsD_zvCC,marker='x')
+# plt.xlabel('Y-Z Offset')
+# plt.ylabel('Cross Correlation with Measured SYM/H')
 
 #%%
 
