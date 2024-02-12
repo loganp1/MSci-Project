@@ -77,9 +77,23 @@ for i in range(len(ace_dfs)):
 #%%
 
 AvsR_zvCC = np.load('AvsR_zvCC.npy')
+DvsR_zvCC = np.load('DvsR_zvCC.npy')
+MvsR_zvCC = np.load('MvsR_zvCC.npy')
 
 plt.scatter(Ayz_offset,AvsR_zvCC,marker='x')
 
 plt.xlabel('Y-Z Offset')
 plt.ylabel('Cross Correlation with Measured SYM/H')
 
+#%%
+
+plt.hist(MvsR_zvCC)
+plt.show()
+
+plt.hist(AvsR_zvCC)
+plt.show()
+
+plt.hist(DvsR_zvCC)
+plt.show()
+
+comp_diffAD = np.asarray(AvsR_zvCC) - np.asarray(DvsR_zvCC)

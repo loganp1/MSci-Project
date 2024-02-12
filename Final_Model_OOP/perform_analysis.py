@@ -58,14 +58,14 @@ for i in range(len(split_times)):
 # MvsR_deltaTs = []
 
 # ACE vs Real
-# AvsR_zvCC = []
-# AvsR_maxCC = []
-# AvsR_deltaTs = []
+AvsR_zvCC = []
+AvsR_maxCC = []
+AvsR_deltaTs = []
 
 # DSCOVR vs Real
-# DvsR_zvCC = []
-# DvsR_maxCC = []
-# DvsR_deltaTs = []
+DvsR_zvCC = []
+DvsR_maxCC = []
+DvsR_deltaTs = []
 
 # ACE vs DSCOVR
 AvsD_zvCC = []
@@ -78,7 +78,9 @@ for i in range(len(ace_dfs)):
     sc_dict = {'ACE': ace_dfs[i], 'DSCOVR': dsc_dfs[i], 'Wind': wnd_dfs[i]}
     # We plug in the full sym as don't want to remove important outside-edge data 
     myclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
-    tm, t1, t2, t3, sym_forecast1, sym_forecast2, sym_forecast3, sym_forecast_mul = myclass.Compare_Forecasts('both')
+    tm, t1, t2, t3, sym_forecast1, \
+        sym_forecast2, sym_forecast3, sym_forecast_mul = myclass.Compare_Forecasts('both')
+
 
     sym_real = myclass.GetSYMdata()['SYM/H, nT']
     treal = myclass.GetSYMdata()['Time']
@@ -90,14 +92,36 @@ for i in range(len(ace_dfs)):
     # Multi vs Real
     
     # Form 2d lists for time series' + data
+    ace_list = [t1,sym_forecast1]
+    dsc_list = [t2,sym_forecast2]
+    wnd_list = [t3,sym_forecast3]
     mul_list = [tm,sym_forecast_mul]
     real_list = [treal,sym_real]
 
-    common_time, sym_forecast_mulA, sym_realA = align_and_interpolate_datasets(mul_list,real_list,len(tm))
-    sym_forecast_mulA, sym_realA = sym_forecast_mulA[0], sym_realA[0]
+    # Comment out non-required lines:
+    
+    # MR
+    common_time, sym_forecastA, sym_realA = align_and_interpolate_datasets(mul_list,real_list,len(tm))
+    sym_forecast_mulA, sym_realA = sym_forecastA[0], sym_realA[0]
+    
+    # AR
+    common_time, sym_forecastA, sym_realA = align_and_interpolate_datasets(ace_list,real_list,len(t1))
+    sym_forecastA, sym_realA = sym_forecastA[0], sym_realA[0]
+    
+    #DR
+    common_time, sym_forecastA, sym_realA = align_and_interpolate_datasets(dsc_list,real_list,len(t2))
+    sym_forecastA, sym_realA = sym_forecastA[0], sym_realA[0]
+    
+    #WR
+    common_time, sym_forecastA, sym_realA = align_and_interpolate_datasets(wnd_list,real_list,len(t3))
+    sym_forecastA, sym_realA = sym_forecastA[0], sym_realA[0]
+    
+    # AD
+    common_time, sym_forecastA, sym_realA = align_and_interpolate_datasets(ace_list,dsc_list,len(t1))
+    sym_forecastA, sym_realA = sym_forecastA[0], sym_realA[0]
     
     # Cross-correlation
-    time_delays,cross_corr_values = cross_correlation(sym_forecast_mulA, sym_realA, common_time)
+    time_delays,cross_corr_values = cross_correlation(sym_forecastA, sym_realA, common_time)
 
     # Find the index where time_delays is 0
     zero_delay_index = np.where(time_delays == 0)[0]
@@ -109,14 +133,30 @@ for i in range(len(ace_dfs)):
     maxCC = max(cross_corr_values)
     zeroValCC = cross_corr_values[zero_delay_index][0]
     
-    AvsD_zvCC.append(zeroValCC)
-    AvsD_maxCC.append(maxCC)
-    AvsD_deltaTs.append(deltaT)
+    # MvsR_zvCC.append(zeroValCC)
+    # MvsR_maxCC.append(maxCC)
+    # MvsR_deltaTs.append(deltaT)
+    
+    AvsR_zvCC.append(zeroValCC)
+    AvsR_maxCC.append(maxCC)
+    AvsR_deltaTs.append(deltaT)
+    
+    # DvsR_zvCC.append(zeroValCC)
+    # DvsR_maxCC.append(maxCC)
+    # DvsR_deltaTs.append(deltaT)
+    
+    # AvsD_zvCC.append(zeroValCC)
+    # AvsD_maxCC.append(maxCC)
+    # AvsD_deltaTs.append(deltaT)
+    
     print(i)
     
 #%% Transform deltaTs into list if needed
 
-AvsD_deltaTs = [arr[0] for arr in AvsD_deltaTs]
+# MvsR_deltaTs = [arr[0] for arr in AvsR_deltaTs]
+AvsR_deltaTs = [arr[0] for arr in AvsR_deltaTs]
+# DvsR_deltaTs = [arr[0] for arr in AvsR_deltaTs]
+# AvsD_deltaTs = [arr[0] for arr in AvsR_deltaTs]
     
 #%% Plot results
 
@@ -136,6 +176,18 @@ plt.ylabel('Frequency')
 plt.show()
 
 #%% Save data
+
+np.save('MvsR_zvCC.npy',AvsD_zvCC)
+np.save('MvsR_maxCC.npy',AvsD_maxCC)
+np.save('MvsR_deltaTs.npy',AvsD_deltaTs)
+
+np.save('AvsR_zvCC.npy',AvsD_zvCC)
+np.save('AvsR_maxCC.npy',AvsD_maxCC)
+np.save('AvsR_deltaTs.npy',AvsD_deltaTs)
+
+np.save('DvsR_zvCC.npy',AvsD_zvCC)
+np.save('DvsR_maxCC.npy',AvsD_maxCC)
+np.save('DvsR_deltaTs.npy',AvsD_deltaTs)
 
 np.save('AvsD_zvCC.npy',AvsD_zvCC)
 np.save('AvsD_maxCC.npy',AvsD_maxCC)

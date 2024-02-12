@@ -35,6 +35,9 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         self._SC_dict = SC_dict
         self._SYMr = SYM_real
         self._OMNI = df_OMNI_BSN
+        self._ace_dfs = None 
+        self._dsc_dfs = None 
+        self._wnd_dfs = None
         
         
     def unix_to_DateTime(self):
@@ -211,12 +214,12 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
 
         
         
-    def GetStats(self, chosen_pair, chosen_stats):
+    def GetStats(self, chosen_pair):
         
         '''
         Function to calculate cross-correlation between a chosen pair of distributions
         chosen_ pair: ['spacecraft1/multi/realsym','spacecraft2/multi/realsym']
-        chosen_stats: 'sep' or 'transverse sep'
+        chosen_stats: 'sep' or 'transverse sep' (I've removed this for now)
         '''
 
         tm, t1, t2, t3, sym1, sym2, sym3, sym_mul = self.Compare_Forecasts('both')
@@ -240,14 +243,108 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         
         # Now apply which pair we've chosen - create common time series & corresponding data
         common_time, symA, symB = align_and_interpolate_datasets(newdic[chosen_pair[0]],
-                                                                 chosen_pair[1],len(sym_real))
+                                                                 newdic[chosen_pair[1]],len(sym_real))
         symA, symB = symA[0], symB[0]
         
         # Cross correlation
         time_delays,cross_corr_values = cross_correlation(symA, symB, common_time)
         peak_index = np.argmax(np.abs(cross_corr_values))
 
-                                                  
+            
+
+    def SplitTimes(self, split_times):
+        
+        ace_dfs = []
+        dsc_dfs = []
+        wnd_dfs = []
+        
+        # Split the DataFrame based on the min_max_times
+        for i in range(len(split_times)):
+            start_time, end_time = split_times[i]
+            subset_df_ACE = self._SC_dict['ACE'][(self._SC_dict['ACE']['Time'] >= start_time) & 
+                                                 (self._SC_dict['ACE']['Time'] <= end_time)].copy()
+            ace_dfs.append(subset_df_ACE)
+            subset_df_DSC = self._SC_dict['DSCOVR'][(self._SC_dict['DSCOVR']['Time'] >= start_time) &
+                                                 (self._SC_dict['DSCOVR']['Time'] <= end_time)].copy()
+            dsc_dfs.append(subset_df_DSC)
+            subset_df_Wind = self._SC_dict['Wind'][(self._SC_dict['Wind']['Time'] >= start_time) &
+                                                   (self._SC_dict['Wind']['Time'] <= end_time)].copy()
+            wnd_dfs.append(subset_df_Wind)
+            
+        # Set the class attributes
+        self._ace_dfs = ace_dfs
+        self._dsc_dfs = dsc_dfs
+        self._wnd_dfs = wnd_dfs
+                                      
     
+    def GetCC(self,chosen_pair):
+        
+        '''
+        chosen_pair should be a list of 2 strings, two of: 
+        'ACE', 'DSCOVR', 'Wind', 'multi', 'real'
+        Preferably put 'real' second in list as len(element 1) is used which will make code run faster if not sym
+        
+        '''
+        
+        zvCCs = []
+        maxCCs = []
+        deltaTs = []
+        
+        for i in range(len(self._ace_dfs)):
+            
+            sc_dict = {'ACE': self._ace_dfs[i], 'DSCOVR': self._dsc_dfs[i], 'Wind': self._wnd_dfs[i]}
+            
+            # We plug in the full sym as don't want to remove important outside-edge data 
+            myclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=self._SYMr)
+            
+            # For first in pair
+            if chosen_pair[0] in ['ACE', 'DSCOVR', 'Wind']:
+                sym1, t1 = myclass.Forecast_SYM_H('single', chosen_pair[0])
+
+            elif chosen_pair[0] == 'multi':
+                sym1, t1 = myclass.Forecast_SYM_H('multi')
+            elif chosen_pair[0] == 'real':
+                sym1, t1 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
+                
+            # For second in pair
+            if chosen_pair[1] in ['ACE', 'DSCOVR', 'Wind']:
+                sym2, t2 = myclass.Forecast_SYM_H('single', chosen_pair[1])
+            elif chosen_pair[1] == 'multi':
+                sym2, t2 = myclass.Forecast_SYM_H('multi')
+            elif chosen_pair[1] == 'real':
+                sym2, t2 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
+            
+            # Turn series' into lists so we can index properly
+            t1, t2 = (t1.tolist(), t2.tolist())
+            
+            # Form 2d lists for time series' + data
+            list1 = [t1,sym1]
+            list2 = [t2,sym2]
+            
+            # Align and interpolate 2 desired sym datasets
+            common_time, sym1A, sym2A = align_and_interpolate_datasets(list1,list2,len(t1))
+            sym1A, sym2A = sym1A[0], sym2A[0]
+            
+            # Cross-correlation
+            time_delays,cross_corr_values = cross_correlation(sym1A, sym2A, common_time)
+
+            # Find the index where time_delays is 0
+            zero_delay_index = np.where(time_delays == 0)[0]
+            max_index = np.argmax(cross_corr_values)
+        
+            
+            # Output max CC, zero value CC and time shift between these two values
+            maxCC = max(cross_corr_values)
+            zeroValCC = cross_corr_values[zero_delay_index][0]
+            deltaT = time_delays[max_index] - time_delays[zero_delay_index]
+            
+            zvCCs.append(zeroValCC)
+            maxCCs.append(maxCC)
+            deltaTs.append(deltaT)
+            
+            print(i)
+            
+        return zvCCs, maxCCs, deltaTs
+            
     
         
