@@ -53,9 +53,27 @@ for i in range(len(split_times)):
 #%% Record max cross-correlation & zero value CC for every 'sub' df forecast
 
 # Multi vs Real
-MvsR_CC = []
+# MvsR_zvCC = []
+# MvsR_maxCC = []
+# MvsR_deltaTs = []
 
-for i in range(2):
+# ACE vs Real
+# AvsR_zvCC = []
+# AvsR_maxCC = []
+# AvsR_deltaTs = []
+
+# DSCOVR vs Real
+# DvsR_zvCC = []
+# DvsR_maxCC = []
+# DvsR_deltaTs = []
+
+# ACE vs DSCOVR
+AvsD_zvCC = []
+AvsD_maxCC = []
+AvsD_deltaTs = []
+
+
+for i in range(len(ace_dfs)):
     
     sc_dict = {'ACE': ace_dfs[i], 'DSCOVR': dsc_dfs[i], 'Wind': wnd_dfs[i]}
     # We plug in the full sym as don't want to remove important outside-edge data 
@@ -83,11 +101,45 @@ for i in range(2):
 
     # Find the index where time_delays is 0
     zero_delay_index = np.where(time_delays == 0)[0]
+    max_index = np.argmax(cross_corr_values)
+    
+    deltaT = time_delays[max_index] - time_delays[zero_delay_index]
     
     # Output max CC and zero value CC
     maxCC = max(cross_corr_values)
-    zeroValCC = cross_corr_values[zero_delay_index]
+    zeroValCC = cross_corr_values[zero_delay_index][0]
     
-    MvsR_CC.append(zeroValCC)
+    AvsD_zvCC.append(zeroValCC)
+    AvsD_maxCC.append(maxCC)
+    AvsD_deltaTs.append(deltaT)
+    print(i)
+    
+#%% Transform deltaTs into list if needed
 
+AvsD_deltaTs = [arr[0] for arr in AvsD_deltaTs]
     
+#%% Plot results
+
+plt.hist(AvsD_zvCC)
+plt.xlabel('Zero Value Cross Correlation')
+plt.ylabel('Frequency')
+plt.show()
+
+plt.hist(AvsD_maxCC)
+plt.xlabel('Maximum Cross Correlation')
+plt.ylabel('Frequency')
+plt.show()
+    
+plt.hist(AvsD_deltaTs)
+plt.xlabel('$\Delta$T')
+plt.ylabel('Frequency')
+plt.show()
+
+#%% Save data
+
+np.save('AvsD_zvCC.npy',AvsD_zvCC)
+np.save('AvsD_maxCC.npy',AvsD_maxCC)
+np.save('AvsD_deltaTs.npy',AvsD_deltaTs)
+
+
+
