@@ -40,11 +40,11 @@ myclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
 
 myclass.unix_to_DateTime()
 
-start_date = '2018-08-22 00:00:00'
-end_date = '2018-08-30 00:00:00'
+#start_date = '2018-08-22 00:00:00'
+#end_date = '2018-08-30 00:00:00'
 
-#start_date = '2018-03-28 10:59:00'
-#end_date = '2018-05-03 14:18:00'
+start_date = '2018-03-28 10:59:00'
+end_date = '2018-05-03 14:18:00'
 
 #start_date = '2018-03-28 10:59:00'
 #end_date = '2018-04-03 14:18:00'

@@ -87,3 +87,22 @@ filtered_df.sort_values(by='DateTime', inplace=True)
 
 # Save the filtered and sorted DataFrame to a CSV file
 filtered_df.to_csv('SYM_data_unix.csv', index=False)
+
+
+#%%
+
+df1 = pd.read_csv('OMNI_EP_T1_1min_unix.csv')
+df2 = pd.read_csv('OMNI_EP_T2_1min_unix.csv')
+df3 = pd.read_csv('OMNI_EP_T3_1min_unix.csv')
+
+# Concatenate the DataFrames vertically
+combined_df = pd.concat([df1, df2, df3], ignore_index=True)
+
+# Convert the 'Time' column to datetime objects
+combined_df['DateTime'] = pd.to_datetime(combined_df['Time'], unit='s')
+
+# Sort the combined DataFrame by the 'DateTime' column
+combined_df.sort_values(by='DateTime', inplace=True)
+
+# Save the combined DataFrame to a CSV file
+combined_df.to_csv('OMNI_EP_data_unix.csv', index=False)

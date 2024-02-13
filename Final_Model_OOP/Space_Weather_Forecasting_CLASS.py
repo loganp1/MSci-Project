@@ -30,14 +30,15 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
     
     '''
     
-    def __init__(self, SC_dict, SYM_real, df_OMNI_BSN=None):
+    def __init__(self, SC_dict, SYM_real, OMNI_data=None):
         
         self._SC_dict = SC_dict
         self._SYMr = SYM_real
-        self._OMNI = df_OMNI_BSN
+        self._OMNI = OMNI_data
         self._ace_dfs = None 
         self._dsc_dfs = None 
         self._wnd_dfs = None
+        self._omni_dfs = None
         
         
     def unix_to_DateTime(self):
@@ -47,6 +48,11 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             df['DateTime'] = pd.to_datetime(df['Time'], unit='s')
             
         self._SYMr['DateTime'] = pd.to_datetime(self._SYMr['Time'], unit='s')
+        
+        
+    def GetSCdf(self):
+        
+        return self._SC_dict
             
             
     def GetSCdata(self, sc_name):
@@ -268,6 +274,7 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         ace_dfs = []
         dsc_dfs = []
         wnd_dfs = []
+        # omni_dfs = []
         
         # Try and get all dfs in required form before splitting
         class_prop = SC_Propagation(self._SC_dict)
@@ -287,10 +294,27 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
                                                    (self._SC_dict['Wind']['Time'] <= end_time)].copy()
             wnd_dfs.append(subset_df_Wind)
             
+            # Actually need OMNI split at propagated times so create another function to do that later after prop.
+            # subset_df_omni = self._OMNI[(self._OMNI['Time'] >= start_time) &
+            #                                        (self._OMNI['Time'] <= end_time)].copy()
+            # omni_dfs.append(subset_df_omni)
+            
         # Set the class attributes
         self._ace_dfs = ace_dfs
         self._dsc_dfs = dsc_dfs
         self._wnd_dfs = wnd_dfs
+        #self._omni_dfs = omni_dfs
+        
+        
+    def SplitOMNI(self,split_time_omni):
+        
+        # Don't need loop as will split separately in loop inside GetCC
+            
+        start_time, end_time = split_time_omni
+    
+        subset_df_omni = self._OMNI[(self._OMNI['Time'] >= start_time) &
+                                    (self._OMNI['Time'] <= end_time)].copy()
+        return subset_df_omni
                                       
     
     def GetCC(self,chosen_pair):
@@ -299,6 +323,9 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         chosen_pair should be a list of 2 strings, two of: 
         'ACE', 'DSCOVR', 'Wind', 'multi', 'real'
         Preferably put 'real' second in list as len(element 1) is used which will make code run faster if not sym
+        
+        If doing multi vs OMNI: VERY IMPORTANT: MAKE SURE 'multi' IS FIRST ARGUMENT AS WE NEED TO GET ITS 
+        PROPAGATED TIMES SO WE KNOW HOW TO SPLIT UP THE OMNI DATA TO MATCH IT.
         
         '''
             
@@ -339,6 +366,9 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             elif chosen_pair[0] == 'real':
                 sym1, t1 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
                 
+            # Now we can split the OMNI data if we need to based on the multi propagated times
+            # Only do this inside elif statement below to optimise run time
+                
             # For second in pair
             if chosen_pair[1] in ['ACE', 'DSCOVR', 'Wind']:
                 sym2, t2 = myclass.Forecast_SYM_H(class_prop, 'single', chosen_pair[1])
@@ -346,6 +376,55 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
                 sym2, t2 = myclass.Forecast_SYM_H(class_prop, 'multi')
             elif chosen_pair[1] == 'real':
                 sym2, t2 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
+            elif chosen_pair[1] == 'OMNI':
+                
+                # Locate start and end time of multi (or could be other tbf, just chosen_pair[0])
+                time0 = t1.values[0]
+                timeX = t1.values[-1]
+                
+                split_OMNI = self.SplitOMNI([time0,timeX])
+                split_OMNI = split_OMNI.reset_index()
+                
+                # Time series don't match exactly so get closest time for initial sym value
+                target_time = time0
+                closest_time_index = (self._SYMr['Time'] - target_time).abs().idxmin()
+                
+                # Now you have the index of the row with the closest time value
+                # You can use this index to get the corresponding 'SYM/H, nT' value
+                initial_sym_val = self._SYMr.loc[closest_time_index, 'SYM/H, nT']
+                
+                sym_class = SYM_H_Model(split_OMNI,initial_sym_val)
+                sym_OMNI = sym_class.predict_SYM()
+                time_OMNI = split_OMNI['Time']
+                sym2, t2 = sym_OMNI, time_OMNI
+                
+                
+            # Need an extra option for if doing OMNI vs real as OMNI needs to be first but need multi prop times
+            # to get the OMNI times split
+            
+            if chosen_pair[0] == 'OMNI' and chosen_pair[1] == 'real':
+                
+                sym_ignore, t_ignore = myclass.Forecast_SYM_H(class_prop, 'multi')
+                
+                time0 = t_ignore.values[0]
+                timeX = t_ignore.values[-1]
+                
+                split_OMNI = self.SplitOMNI([time0,timeX])
+                split_OMNI = split_OMNI.reset_index()
+                
+                # Time series don't match exactly so get closest time for initial sym value
+                target_time = time0
+                closest_time_index = (self._SYMr['Time'] - target_time).abs().idxmin()
+                
+                # Now you have the index of the row with the closest time value
+                # You can use this index to get the corresponding 'SYM/H, nT' value
+                initial_sym_val = self._SYMr.loc[closest_time_index, 'SYM/H, nT']
+                
+                sym_class = SYM_H_Model(split_OMNI,initial_sym_val)
+                sym_OMNI = sym_class.predict_SYM()
+                time_OMNI = split_OMNI['Time']
+                sym1, t1 = sym_OMNI, time_OMNI
+                
             
             # Turn series' into lists so we can index properly
             t1, t2 = (t1.tolist(), t2.tolist())

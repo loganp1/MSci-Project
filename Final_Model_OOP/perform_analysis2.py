@@ -17,7 +17,6 @@ sys.path.append(r"C:\Users\logan\OneDrive - Imperial College London\Uni\Year 4\M
                 r"\Final_Model_OOP")
 
 from Space_Weather_Forecasting_CLASS import Space_Weather_Forecast
-from align_and_interpolate import align_and_interpolate_datasets
 
 #%% Upload data
 
@@ -26,6 +25,20 @@ df_DSCOVR = pd.read_csv('dscovr_data_unix.csv')
 df_Wind = pd.read_csv('wind_data_unix.csv')
 df_SYM = pd.read_csv('SYM_data_unix.csv')
 split_times = np.load('split_data_times.npy')
+df_OMNI = pd.read_csv('OMNI_EP_data_unix.csv')
+
+#%% OMNI data needs to be cleaned
+
+df_OMNI['DateTime'] = pd.to_datetime(df_OMNI['Time'], unit='s')
+
+df_OMNI['Pressure'] = df_OMNI['Flow pressure, nPa'].replace(99.99, np.nan)
+df_OMNI['Efield'] = df_OMNI['Electric field, mV/m'].replace(999.99, np.nan)
+
+for column in df_OMNI.columns:
+    df_OMNI[column] = df_OMNI[column].interpolate()
+
+# Drop rows with remaining NaN values
+df_OMNI = df_OMNI.dropna()
 
 #%% Create dictionary of data and initialise main class for forecasting
 
@@ -33,21 +46,22 @@ sc_dict = {'ACE': df_ACE, 'DSCOVR': df_DSCOVR, 'Wind': df_Wind}
 
 # TRY NOT TO CALL CLASS SAME AS SOMETHING IN CLASSES (NOT SURE EXACTLY IF IT MATTERS BUT MAY CAUSE ISSUES)
 
-MYclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
+MYclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM, OMNI_data=df_OMNI)
 
 #%% Split data into 4 hour periods
 
+# DON'T RUN THIS AGAIN ONLY ONCE, RELOAD DATA IF DO ACCIDENTALLY
 MYclass.SplitTimes(split_times)
 
 #%% Get data
 
-zvCCs, maxCCs, deltaTs = MYclass.GetCC(['ACE','DSCOVR'])
+zvCCs, maxCCs, deltaTs = MYclass.GetCC(['OMNI','real'])
 
 #%% Save data files
 
-np.save('DvsW_zvCCs.npy', zvCCs)
-np.save('DvsW_maxCCs.npy', maxCCs)
-np.save('DvsW_deltaTs.npy', deltaTs)
+np.save('OvsR_zvCCs.npy', zvCCs)
+np.save('OvsR_maxCCs.npy', maxCCs)
+np.save('OvsR_deltaTs.npy', deltaTs)
 
 #%% Plot data
 
@@ -68,4 +82,7 @@ data = MYclass.GetSCsubDFs()
 test_MYclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
 
 test_zvCCs, test_maxCCs, test_deltaTs = MYclass.GetCC(['ACE','DSCOVR'])
+
+
+
 
