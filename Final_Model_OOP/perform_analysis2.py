@@ -59,9 +59,9 @@ zvCCs, maxCCs, deltaTs = MYclass.GetCC(['OMNI','real'])
 
 #%% Save data files
 
-np.save('OvsR_zvCCs.npy', zvCCs)
-np.save('OvsR_maxCCs.npy', maxCCs)
-np.save('OvsR_deltaTs.npy', deltaTs)
+np.save('OvsR_zvCCs_d15.npy', zvCCs)
+np.save('OvsR_maxCCs_d15.npy', maxCCs)
+np.save('OvsR_deltaTs_d15.npy', deltaTs)
 
 #%% Plot data
 
@@ -83,6 +83,8 @@ test_MYclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
 
 test_zvCCs, test_maxCCs, test_deltaTs = MYclass.GetCC(['ACE','DSCOVR'])
 
+
+#%% Create comparison histogram
 
 
 
