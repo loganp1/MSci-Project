@@ -55,7 +55,7 @@ MYclass.SplitTimes(split_times)
 
 #%% Get data
 
-zvCCs, maxCCs, deltaTs = MYclass.GetCC(['OMNI','real'])
+zvCCs, maxCCs, deltaTs = MYclass.GetCC(['multi','real'])
 
 #%% Save data files
 

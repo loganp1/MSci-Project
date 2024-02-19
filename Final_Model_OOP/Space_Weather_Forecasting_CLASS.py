@@ -156,6 +156,7 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
 
         # If chosen_method == multi: propagate combined spacecraft data using WA method
         if chosen_method == 'multi':
+            #class1.required_form()
             df_prop = class1.multiSC_WA_Propagate()
 
         # Now test 2nd class - SYM/H forecasting
@@ -174,6 +175,10 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             return time_series1, time_series2, time_series3, sym_forecast1, sym_forecast2, sym_forecast3
         
         if chosen_method == 'both':
+            
+            # Comment out below line if splitting dataframe
+            class1.required_form()
+            
             df_prop1 = class1.singleSC_Propagate('ACE')
             df_prop2 = class1.singleSC_Propagate('DSCOVR')
             df_prop3 = class1.singleSC_Propagate('Wind')

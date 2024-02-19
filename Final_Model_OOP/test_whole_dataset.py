@@ -18,6 +18,7 @@ sys.path.append(r"C:\Users\logan\OneDrive - Imperial College London\Uni\Year 4\M
 
 from Space_Weather_Forecasting_CLASS import Space_Weather_Forecast
 from align_and_interpolate import align_and_interpolate_datasets
+from SC_Propagation_CLASS import SC_Propagation
 
 
 #%%
@@ -28,23 +29,40 @@ df_DSCOVR = pd.read_csv('dscovr_data_unix.csv')
 df_Wind = pd.read_csv('wind_data_unix.csv')
 df_SYM = pd.read_csv('SYM_data_unix.csv')
 
+#%%
+
+# For testing purposes make much smaller
+# df_ACE = pd.read_csv('ace_data_unix.csv').head(1000)
+# df_DSCOVR = pd.read_csv('dscovr_data_unix.csv').head(1000)
+# df_Wind = pd.read_csv('wind_data_unix.csv').head(1000)
+# df_SYM = pd.read_csv('SYM_data_unix.csv').head(1000)
+
+
 #%% Rerun this every time after running below test otherwise will X pos data by Re each time from required_form()
 
 # Create dictionary of dataframes
 sc_dict = {'ACE': df_ACE, 'DSCOVR': df_DSCOVR, 'Wind': df_Wind}
 
+prop_class = SC_Propagation(sc_dict)
+
 # Load this into Space_Weather_Forecast and watch the magic work!
-myclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
+MYclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM)
+
+'''
+NOTE: CRITICAL!!!!!
+We CANNOT name our class myclass as that is used within the classes!
+(Not sure this does actually cause the problems after all)
+'''
 
 # Lets do a forecast between these dates 
 
-myclass.unix_to_DateTime()
+MYclass.unix_to_DateTime()
 
 #start_date = '2018-08-22 00:00:00'
 #end_date = '2018-08-30 00:00:00'
 
-start_date = '2018-03-28 10:59:00'
-end_date = '2018-05-03 14:18:00'
+#start_date = '2018-03-28 10:59:00'
+#end_date = '2018-05-03 14:18:00'
 
 #start_date = '2018-03-28 10:59:00'
 #end_date = '2018-04-03 14:18:00'
@@ -52,23 +70,35 @@ end_date = '2018-05-03 14:18:00'
 
 
 # Convert strings to datetime objects
-start_date = pd.to_datetime(start_date)
-end_date = pd.to_datetime(end_date)
+#start_date = pd.to_datetime(start_date)
+#end_date = pd.to_datetime(end_date)
 
-myclass.filter_dates(start_date,end_date)
+#MYclass.filter_dates(start_date,end_date)
 
-df_ACEfilt = myclass.GetSCdata('ACE')
-df_DSCfilt = myclass.GetSCdata('DSCOVR')
-df_Wndfilt = myclass.GetSCdata('Wind')
+#df_ACEfilt = myclass.GetSCdata('ACE')
+#df_DSCfilt = myclass.GetSCdata('DSCOVR')
+#df_Wndfilt = myclass.GetSCdata('Wind')
 
 #%% Testing - All 4 prediction methods
 
-tm, t1, t2, t3, sym_forecast1, sym_forecast2, sym_forecast3, sym_forecast_mul = myclass.Compare_Forecasts('both')
+tm, t1, t2, t3, sym_forecast_mul, sym_forecast1, sym_forecast2, sym_forecast3, \
+                                                                        = MYclass.Forecast_SYM_H(prop_class,'both')
+
+#%%
+
+testa = np.array([np.asarray(tm),np.asarray(sym_forecast_mul)])
+
+#%%
+
+np.save('multi_sym_forecastnpy',np.array([tm,sym_forecast_mul]))
+np.save('ace_sym_forecastnpy',np.array([t1,sym_forecast1]))
+np.save('dscovr_sym_forecastnpy',np.array([t2,sym_forecast2]))
+np.save('wind_sym_forecastnpy',np.array([t3,sym_forecast3]))
 
 #%% 
 
-sym_real = myclass.GetSYMdata()['SYM/H, nT']
-treal = myclass.GetSYMdata()['Time']
+sym_real = MYclass.GetSYMdata()['SYM/H, nT']
+treal = MYclass.GetSYMdata()['Time']
 
 #treal = pd.to_datetime(treal,unit='s')
 
