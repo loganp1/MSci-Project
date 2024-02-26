@@ -75,7 +75,7 @@ def SYM_forecast(SYM_i, dt, a, b, c, d, P_i, P_iplus1, E_i):
 df_params['DayHourMin'] = df_params['Day'] + df_params['Hour'] / 24.0 + df_params['Minute'] / 60 / 24
 
 # Filter the DataFrame
-df_storm1 = df_params[(132 < df_params['Day']) & (df_params['Day'] < 136)]
+df_storm1 = df_params[(133 < df_params['Day']) & (df_params['Day'] < 135.5)]
 
 # Extract relevant columns
 days1 = df_storm1['DayHourMin'].values
@@ -85,28 +85,45 @@ pressure = df_storm1['Flow pressure, nPa'].values
 
 # Plotting
 plt.figure(figsize=(12, 6))
-plt.plot(days1, sym_storm1/-15, label = 'SYM/H')
+with plt.style.context('ggplot'):
+    
+    plt.plot(days1, sym_storm1, label='SYM/H')
+    
 plt.grid()
 
 # Adding labels and title
-plt.xlabel('Day in 2001', fontsize=15)
-plt.ylabel('Scaled SYM/H (nT) (/-15)', fontsize=15)
-#plt.title('Storm 1', fontsize=15)
+plt.xlabel('Day in 2001', fontsize=15,color='black')
+plt.ylabel('Scaled SYM/H (nT)', fontsize=15,color='black')
+# plt.title('Storm 1', fontsize=15)
 
 # Set x-axis ticks to display only whole numbers
-plt.xticks(range(int(days1[0]), int(days1[-1]) + 1), fontsize=15)
-plt.yticks(fontsize=15)
+plt.xticks(range(int(days1[0]), int(days1[-1]) + 1), fontsize=15,color='black')
+plt.yticks(fontsize=15,color='black')
 
 # Plot parameters E and P in storm to compare to SYM/H
-plt.plot(days1, Efield, label = 'E')
-plt.plot(days1, pressure, label = 'P')
+# plt.plot(days1, Efield, label='E')
+# plt.plot(days1, pressure, label='P')
 
-plt.legend()
+# Annotation for main phase
+minima_index = sym_storm1.argmin()
+minima_day = days1[minima_index]
+minima_value = sym_storm1[minima_index]
+plt.annotate('Main Phase', xy=(minima_day, minima_value), xytext=(minima_day, minima_value + 0.5),
+             arrowprops=dict(facecolor='black', arrowstyle='-|>', shrinkA=0, shrinkB=0), fontsize=12, color='black')
 
-path = ('C:\\Users\\logan\\OneDrive - Imperial College London\\Uni\\Year 4\\MSci Project\\Figures\\'
-        'step1_SYMH_E_P_data_2001_storm1.png')
 
-plt.savefig(path)
+# Annotation for recovery phase
+recovery_start_day = minima_day
+recovery_end_day = days1[-1]
+recovery_value = minima_value
+plt.annotate('Recovery Phase', xy=(recovery_start_day, recovery_value), xytext=(135, -65),
+             arrowprops=dict(facecolor='blue', arrowstyle='<->'), fontsize=12, color='black',
+             horizontalalignment='center', verticalalignment='center')
+
+#plt.legend(fontsize=15)
+plt.grid()
+plt.show()
+
 
 
 #%% Forecast method: 

@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import matplotlib.style as style
+from matplotlib.ticker import AutoMinorLocator
 
 # Add path to the directory containing classes
 sys.path.append(r"C:\Users\logan\OneDrive - Imperial College London\Uni\Year 4\MSci Project\MSci-Project"
@@ -83,6 +85,7 @@ MYclass.unix_to_DateTime()
 
 tm, t1, t2, t3, sym_forecast_mul, sym_forecast1, sym_forecast2, sym_forecast3, \
                                                                         = MYclass.Forecast_SYM_H(prop_class,'both')
+                                                                                                                                                
 
 #%%
 
@@ -94,6 +97,32 @@ np.save('multi_sym_forecastnpy',np.array([tm,sym_forecast_mul]))
 np.save('ace_sym_forecastnpy',np.array([t1,sym_forecast1]))
 np.save('dscovr_sym_forecastnpy',np.array([t2,sym_forecast2]))
 np.save('wind_sym_forecastnpy',np.array([t3,sym_forecast3]))
+
+#%% Test forecasts
+
+fig,ax = plt.subplots(1,1,figsize=(6,4),dpi=300)
+
+style.use('ggplot')
+
+color_multi = '#D3D3D3'  # Grey
+color_ace = '#1f77b4'    # Blue
+color_dscovr = '#2ca02c' # Green
+color_wind = '#d62728'   # Red
+
+ax.plot(tm, sym_forecast_mul, label='Multi', alpha=0.4, color=color_multi)
+ax.plot(t1, sym_forecast1, label='ACE', alpha=0.4, color=color_ace)
+ax.plot(t2, sym_forecast2, label='DSCOVR', alpha=0.4, color=color_dscovr)
+ax.plot(t3, sym_forecast3, label='Wind', alpha=0.4, color=color_wind)
+
+
+ax.tick_params(axis='both',labelsize = 12, direction='out',top = True, right = True, which='both')
+ax.yaxis.set_minor_locator(AutoMinorLocator())
+ax.xaxis.set_minor_locator(AutoMinorLocator())
+
+ax.set_xlabel('Time',fontsize = 16)
+ax.set_ylabel('SYM/H [nT]',fontsize = 16)
+
+ax.legend()
 
 #%% 
 
@@ -312,3 +341,6 @@ ad_seplist = df_ACEfilt['x'].values - df_DSCfilt['Wind, Xgse,Re'].values
 plt.plot(pd.to_datetime(df_ACEfilt['Time'],unit='s'),ad_seplist)
 date_format = mdates.DateFormatter('%d-%m')
 plt.gca().xaxis.set_major_formatter(date_format)
+
+
+

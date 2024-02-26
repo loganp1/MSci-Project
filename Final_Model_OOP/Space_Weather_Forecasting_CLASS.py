@@ -117,7 +117,7 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         
         
     # Create function which uses all the methods defined to perform the forecast
-    def Forecast_SYM_H(self, class1, chosen_method, chosen_spacecraft = None):
+    def Forecast_SYM_H(self, sym0, class1, chosen_method, chosen_spacecraft = None):
         
         '''class1 is the propagation class (I've had to edit this as was calling required_form too often)'''
         
@@ -126,7 +126,7 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         "Invalid value for chosen_method. Choose 'single', 'multi' or 'both'."
         
         # Extract initial SYM/H value ready for forecasting
-        sym0 = self._SYMr['SYM/H, nT'].values[0]
+        #sym0 = self._SYMr['SYM/H, nT'].values[0] ### OH MY GOD DONT USE THIS FOR SPLIT DATA 
 
         # # Create an object from SC_Propagation sub-class to propagate the data downstream
         # class1 = SC_Propagation(self._SC_dict)
@@ -320,6 +320,41 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         subset_df_omni = self._OMNI[(self._OMNI['Time'] >= start_time) &
                                     (self._OMNI['Time'] <= end_time)].copy()
         return subset_df_omni
+    
+    
+    def GetSYM0(self,method,i):
+         
+        ##### CAREFUL NOT TO CHANGE THE CLASS WHEN DOING THIS JUST GET THE PROPAGATED TIME
+        sym0 = 0 # doesn't matter, dummy variable as we'll just extract propagated times
+        
+        sc_dict = {'ACE': self._ace_dfs[i], 'DSCOVR': self._dsc_dfs[i], 'Wind': self._wnd_dfs[i]}
+        myclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=self._SYMr)
+        class_prop = SC_Propagation(sc_dict)
+        
+        if method == 'multi':
+            sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'multi')
+            
+        elif method == 'ACE':
+            sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'single', 'ACE')
+            
+        elif method == 'DSCOVR':
+            sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'single', 'DSCOVR')
+            
+        elif method == 'Wind':
+            sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'single', 'Wind')
+        
+        # Locate start time of method
+        time0 = t1[0]
+        
+        # Time series don't match exactly so get closest time for initial sym value
+        target_time = time0
+        closest_time_index = (self._SYMr['Time'] - target_time).abs().idxmin()
+        
+        # Now you have the index of the row with the closest time value
+        # You can use this index to get the corresponding 'SYM/H, nT' value
+        initial_sym_val = self._SYMr.loc[closest_time_index, 'SYM/H, nT']
+        
+        return initial_sym_val
                                       
     
     def GetCC(self,chosen_pair):
@@ -342,6 +377,8 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         
         for i in range(len(self._ace_dfs)):
             
+            #start_time = self._ace_dfs[i]['Time'][0]
+            
             sc_dict = {'ACE': self._ace_dfs[i], 'DSCOVR': self._dsc_dfs[i], 'Wind': self._wnd_dfs[i]}
             
             # We plug in the full sym as don't want to remove important outside-edge data 
@@ -360,27 +397,58 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             #     class_prop.required_form()
             #     # Put this class1 into the 1st argument for Forecast_SYM_H
         
-        
+            ### ERRRORRRRRRRRRRR ERRRORRRRRRRRR DONT FORGET TO ADD SYM0 METHOD FOR SINGLE SCs
             
             # For first in pair
             if chosen_pair[0] in ['ACE', 'DSCOVR', 'Wind']:
-                sym1, t1 = myclass.Forecast_SYM_H(class_prop, 'single', chosen_pair[0])
+                sym0 = self.GetSYM0(chosen_pair[0],i)
+                sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'single', chosen_pair[0])
 
             elif chosen_pair[0] == 'multi':
-                sym1, t1 = myclass.Forecast_SYM_H(class_prop, 'multi')
+                sym0 = self.GetSYM0('multi',i)
+                sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'multi')
             elif chosen_pair[0] == 'real':
                 sym1, t1 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
                 
             # Now we can split the OMNI data if we need to based on the multi propagated times
             # Only do this inside elif statement below to optimise run time
+            
+            # We need to find the real sym at start of period - use propagated time from first in pair
+            
                 
             # For second in pair
             if chosen_pair[1] in ['ACE', 'DSCOVR', 'Wind']:
+                sym0 = self.GetSYM0(chosen_pair[0],i)
                 sym2, t2 = myclass.Forecast_SYM_H(class_prop, 'single', chosen_pair[1])
             elif chosen_pair[1] == 'multi':
+                sym0 = self.GetSYM0('multi')
                 sym2, t2 = myclass.Forecast_SYM_H(class_prop, 'multi')
             elif chosen_pair[1] == 'real':
                 sym2, t2 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
+                
+                ##### DONT USE CODE BELOW ITS NONSENSE!!!
+                # # Code below is same as for OMNI data to get the times we need for real and make code faster
+                # # Locate start and end time of multi (or could be other tbf, just chosen_pair[0])
+                # time0 = t1.values[0]
+                # timeX = t1.values[-1]
+                
+                # split_real = self.SplitOMNI([time0,timeX])
+                # split_real = split_real.reset_index()
+                
+                # # Time series don't match exactly so get closest time for initial sym value
+                # target_time = time0
+                # closest_time_index = (self._SYMr['Time'] - target_time).abs().idxmin()
+                
+                # # Now you have the index of the row with the closest time value
+                # # You can use this index to get the corresponding 'SYM/H, nT' value
+                # initial_sym_val = self._SYMr.loc[closest_time_index, 'SYM/H, nT']
+                
+                # sym_class = SYM_H_Model(split_real,initial_sym_val)
+                # sym_Real = sym_class.predict_SYM()
+                # time_Real = split_real['Time']
+                # sym2, t2 = sym_Real, time_Real
+                
+                
             elif chosen_pair[1] == 'OMNI':
                 
                 # Locate start and end time of multi (or could be other tbf, just chosen_pair[0])
@@ -430,6 +498,7 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
                 time_OMNI = split_OMNI['Time']
                 sym1, t1 = sym_OMNI, time_OMNI
                 
+                
             
             # Turn series' into lists so we can index properly
             t1, t2 = (t1.tolist(), t2.tolist())
@@ -457,13 +526,13 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             
             zvCCs.append(zeroValCC)
             maxCCs.append(maxCC)
-            deltaTs.append(deltaT)
+            deltaTs.append(deltaT[0])
             
             print(i)
             #first = False
            
         # Get deltaTs as list of elements (not list of lots of 1-element lists!)
-        deltaTs = [arr[0] for arr in deltaTs]    
+        deltaTs = [arr for arr in deltaTs]    
            
         return zvCCs, maxCCs, deltaTs
             

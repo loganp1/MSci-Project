@@ -73,11 +73,14 @@ def SYM_forecast(SYM_i, dt, a, b, c, d, P_i, P_iplus1, E_i):
 
 # Create plot of storm1 in 2001 SYM/H data
 
+from matplotlib.ticker import AutoMinorLocator
+
+
 # Combine 'Day' and 'Hour' into a new column 'DayHour'
 df_params['DayHourMin'] = df_params['Day'] + df_params['Hour'] / 24.0 + df_params['Minute'] / 60 / 24
 
 # Filter the DataFrame
-df_storm1 = df_params[(76 < df_params['Day']) & (df_params['Day'] < 81)]
+df_storm1 = df_params[(77 < df_params['Day']) & (df_params['Day'] < 82)]
 
 # Extract relevant columns
 days1 = df_storm1['DayHourMin'].values
@@ -87,23 +90,44 @@ pressure = df_storm1['Flow pressure, nPa'].values
 
 # Plotting
 plt.figure(figsize=(12, 6))
-#plt.plot(days1, sym_storm1/-15, label = 'SYM/H')
+with plt.style.context('ggplot'):
+    plt.plot(days1, sym_storm1, label='SYM/H')
 plt.grid()
 
 # Adding labels and title
-plt.xlabel('Day in 2001', fontsize=15)
-plt.ylabel('Scaled SYM/H (nT) (/-15)', fontsize=15)
+plt.xlabel('Day of Year [2001]', fontsize=20,color='black')
+plt.ylabel('SYM/H [nT]', fontsize=20,color='black')
 #plt.title('Storm 1', fontsize=15)
 
 # Set x-axis ticks to display only whole numbers
-plt.xticks(range(int(days1[0]), int(days1[-1]) + 1), fontsize=15)
-plt.yticks(fontsize=15)
+plt.xticks(range(int(days1[0]), int(days1[-1]) + 1), fontsize=20,color='black')
+plt.yticks(fontsize=20,color='black')
 
 # Plot parameters E and P in storm to compare to SYM/H
-plt.plot(days1, Efield, label = 'E')
-plt.plot(days1, pressure, label = 'P')
+#plt.plot(days1, Efield, label = 'E')
+#plt.plot(days1, pressure, label = 'P')
 
-plt.legend()
+# Annotation for main phase
+minima_index = sym_storm1.argmin()
+minima_day = days1[minima_index]
+minima_value = sym_storm1[minima_index]
+plt.annotate('', xy=(minima_day-0.1,minima_value), xytext=(78, minima_value),
+             arrowprops=dict(facecolor='black', arrowstyle='<->', shrinkA=0, shrinkB=0), fontsize=12, color='black')
+plt.text(78.8, -155, 'Main Phase', fontsize=20, color='Black', ha='center', va='center')
+
+
+# Annotation for recovery phase
+recovery_start_day = minima_day
+recovery_end_day = days1[-1]
+recovery_value = minima_value
+plt.annotate('',xy=(recovery_start_day + 0.2, -150), xytext=(recovery_start_day + 2.5, -150),
+             arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0), fontsize=12, color='black',
+             horizontalalignment='center', verticalalignment='center')
+plt.text(80.9, -140, 'Recovery Phase', fontsize=20, color='Black', ha='center', va='center')
+
+
+#plt.legend()
+plt.grid()
 
 path = ('C:\\Users\\logan\\OneDrive - Imperial College London\\Uni\\Year 4\\MSci Project\\Figures\\'
         'step1_SYMH_E_P_data_2001_storm1.png')
