@@ -83,8 +83,10 @@ MYclass.unix_to_DateTime()
 
 #%% Testing - All 4 prediction methods
 
+sym0 = df_SYM['SYM/H, nT'].values[0]
+
 tm, t1, t2, t3, sym_forecast_mul, sym_forecast1, sym_forecast2, sym_forecast3, \
-                                                                        = MYclass.Forecast_SYM_H(prop_class,'both')
+                                                            = MYclass.Forecast_SYM_H(sym0,prop_class,'both')
                                                                                                                                                 
 
 #%%
@@ -93,10 +95,10 @@ testa = np.array([np.asarray(tm),np.asarray(sym_forecast_mul)])
 
 #%%
 
-np.save('multi_sym_forecastnpy',np.array([tm,sym_forecast_mul]))
-np.save('ace_sym_forecastnpy',np.array([t1,sym_forecast1]))
-np.save('dscovr_sym_forecastnpy',np.array([t2,sym_forecast2]))
-np.save('wind_sym_forecastnpy',np.array([t3,sym_forecast3]))
+np.save('multi_sym_forecast',np.array([tm,sym_forecast_mul]))
+np.save('ace_sym_forecast',np.array([t1,sym_forecast1]))
+np.save('dscovr_sym_forecast',np.array([t2,sym_forecast2]))
+np.save('wind_sym_forecast',np.array([t3,sym_forecast3]))
 
 #%% Test forecasts
 

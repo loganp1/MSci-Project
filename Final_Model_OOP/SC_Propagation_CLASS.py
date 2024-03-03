@@ -65,7 +65,7 @@ class SC_Propagation:
             return self._Wind
         
         
-    def required_form(self):
+    def required_form(self, keep_primary_data=False):
     
             
         # DSCOVR
@@ -113,8 +113,9 @@ class SC_Propagation:
         self._DSCOVR.loc[:, 'P'] = self.P(self._DSCOVR['Proton Density, n/cc'], self._DSCOVR['Speed, km/s'])
         self._DSCOVR.loc[:, 'E'] = self.E(self._DSCOVR['Speed, km/s'], self._DSCOVR['BZ, GSE, nT'])
         
-        # Drop the original columns
-        self._DSCOVR = self._DSCOVR.drop(['Proton Density, n/cc', 'Speed, km/s', 'BZ, GSE, nT'], axis=1)
+        # Drop the original if keep_primary_data = False (or unspecified as auto set to this)
+        if keep_primary_data == False:
+            self._DSCOVR = self._DSCOVR.drop(['Proton Density, n/cc', 'Speed, km/s', 'BZ, GSE, nT'], axis=1)
 
         
             
@@ -165,7 +166,8 @@ class SC_Propagation:
         self._Wind['E'] = self.E(self._Wind['KP_Speed, km/s'], self._Wind['BZ, GSE, nT'])
         
         # Drop the original columns
-        self._Wind = self._Wind.drop(['Kp_proton Density, n/cc', 'KP_Speed, km/s', 'BZ, GSE, nT'], axis=1)
+        if keep_primary_data == False:
+            self._Wind = self._Wind.drop(['Kp_proton Density, n/cc', 'KP_Speed, km/s', 'BZ, GSE, nT'], axis=1)
             
         # ACE (already cleaned)
         # Interpolate NaN values
@@ -196,7 +198,8 @@ class SC_Propagation:
         self._ACE['E'] = self.E(self._ACE['v'], self._ACE['Bz'])
         
         # Drop the original columns
-        self._ACE.drop(['Bz', 'v', 'n'], axis=1, inplace=True)
+        if keep_primary_data == False:
+            self._ACE.drop(['Bz', 'v', 'n'], axis=1, inplace=True)
         
     
     
@@ -387,7 +390,9 @@ class SC_Propagation:
                                        s[7],s[8]] #modifies position and time in list
             sList[i]=s
             i+=1
+        # I've commented out below to test without interpolation in time
         sListNew=self.alignInterp(sList)    
+        #sListNew = sList
         i=0
         for s in sListNew:
             offsets=np.sqrt(s[5]**2+s[6]**2) #gets offsets and weights
@@ -409,14 +414,38 @@ class SC_Propagation:
     
     def multiSC_WA_Propagate(self):
         
-        # new_E, new_time = self.WA_method(self._multiSC,8)
-        # new_P, new_time = self.WA_method(self._multiSC,7)
-        
-        # return pd.DataFrame({'Time': new_time, 'Efield': new_E, 'Pressure': new_P})
-        
         new_time, new_E = self.WA_method(self._multiSC,8)
         new_time, new_P = self.WA_method(self._multiSC,7)
         
         return pd.DataFrame({'Time': new_time, 'Efield': new_E, 'Pressure': new_P})
+    
+    
+    def multiSC_WA_Propagate_pData(self):
+        
+        new_time, new_Bz = self.WA_method(self._multiSC,7)
+        new_time, new_n = self.WA_method(self._multiSC,8)
+        new_time, new_v = self.WA_method(self._multiSC,9)
+        
+        return pd.DataFrame({'Time': new_time, 'Bz': new_Bz, 'n': new_n, 'v': new_v})
+    
+    
+    def pairs_WA_propagate(self):
+        
+       ADpair = [self._ACE.to_numpy().T, self._DSCOVR.to_numpy().T]
+       AWpair = [self._ACE.to_numpy().T, self._Wind.to_numpy().T]
+       DWpair = [self._DSCOVR.to_numpy().T, self._Wind.to_numpy().T]
+        
+       new_time1, new_E1 = self.WA_method(ADpair,8)
+       new_time1, new_P1 = self.WA_method(ADpair,7)
+       
+       new_time2, new_E2 = self.WA_method(AWpair,8)
+       new_time2, new_P2 = self.WA_method(AWpair,7)
+       
+       new_time3, new_E3 = self.WA_method(DWpair,8)
+       new_time3, new_P3 = self.WA_method(DWpair,7)
+       
+       return (pd.DataFrame({'Time': new_time1, 'Efield': new_E1, 'Pressure': new_P1}),
+              pd.DataFrame({'Time': new_time2, 'Efield': new_E2, 'Pressure': new_P2}),
+              pd.DataFrame({'Time': new_time3, 'Efield': new_E3, 'Pressure': new_P3}))
         
         

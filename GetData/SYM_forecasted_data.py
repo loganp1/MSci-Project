@@ -18,17 +18,17 @@ import matplotlib.dates as mdates
 import seaborn as sns
 
 # Load data
-# multi_sym = np.load('multi_sym_forecast.npy')
-# ace_sym = np.load('ace_sym_forecast.npy')
-# dsc_sym = np.load('dscovr_sym_forecast.npy')
-# wind_sym = np.load('wind_sym_forecast.npy')
-# sym = pd.read_csv('SYM_data_unix.csv')
-
-multi_sym = np.load('multi_sym_forecastnpy.npy')
-ace_sym = np.load('ace_sym_forecastnpy.npy')
-dsc_sym = np.load('dscovr_sym_forecastnpy.npy')
-wind_sym = np.load('wind_sym_forecastnpy.npy')
+multi_sym = np.load('multi_sym_forecast.npy')
+ace_sym = np.load('ace_sym_forecast.npy')
+dsc_sym = np.load('dscovr_sym_forecast.npy')
+wind_sym = np.load('wind_sym_forecast.npy')
 sym = pd.read_csv('SYM_data_unix.csv')
+
+# multi_sym = np.load('multi_sym_forecastnpy.npy')
+# ace_sym = np.load('ace_sym_forecastnpy.npy')
+# dsc_sym = np.load('dscovr_sym_forecastnpy.npy')
+# wind_sym = np.load('wind_sym_forecastnpy.npy')
+# sym = pd.read_csv('SYM_data_unix.csv')
 
 times=np.load("split_data_times.npy")
 
@@ -69,9 +69,11 @@ sns.set_palette("tab10")
 plt.figure(figsize=(10,5))
 # Plot all four variables on the same graph
 plt.plot(time0, filtered_multi_sym[1], label='Multi')
-plt.plot(time1, filtered_ace_sym[1], label='ACE')
-plt.plot(time2, filtered_dsc_sym[1], label='DSCOVR')
-plt.plot(time3, filtered_wind_sym[1], label='Wind')
+#plt.plot(time1, filtered_ace_sym[1], label='ACE')
+#plt.plot(time2, filtered_dsc_sym[1], label='DSCOVR')
+#plt.plot(time3, filtered_wind_sym[1], label='Wind')
+mean_sym = (np.asarray(filtered_ace_sym[1])[1:]+np.asarray(filtered_dsc_sym[1])[2:]+np.asarray(filtered_wind_sym[1]))/3
+plt.plot(time1[1:],mean_sym,label='Mean Single')
 plt.plot(time4, filtered_sym['SYM/H, nT'].values, label='Real SYM/H')
 
 # Set x-axis ticks to show only one label per day
@@ -80,10 +82,10 @@ plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=5))
 # Format x-axis tick labels as dates
 plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d-%m'))
 fs=20
-plt.xlabel("Date in 2018",fontsize=fs)
-plt.ylabel("SYM/H [nT]",fontsize=fs)
-plt.xticks(fontsize=fs)
-plt.yticks(fontsize=fs)
+plt.xlabel("Date in 2018",fontsize=fs,color='black')
+plt.ylabel("SYM/H [nT]",fontsize=fs,color='black')
+plt.xticks(fontsize=fs,color='black')
+plt.yticks(fontsize=fs,color='black')
 plt.legend(fontsize=fs)
 plt.show()
 
@@ -136,8 +138,8 @@ plt.pie(element_counts.values(), autopct='%1.1f%%', startangle=140,
 # Add legend
 plt.legend(loc='upper right', labels=methods, bbox_to_anchor=(1.2, 1.1))
 
-#plt.figtext(0.5, 0.01, '''Pie Chart Highlighting Which Method (Single or Multi-Spacecraft) Records
-#Extreme SYM/H Values Nearest to the Extrema of the Real SYM/H Values''', ha='center', va='center')
+plt.figtext(0.5, 0.01, '''Pie Chart Highlighting Which Method (Single or Multi-Spacecraft) Records
+Extreme SYM/H Values Nearest to the Extrema of the Real SYM/H Values''', ha='center', va='center')
 plt.show()
 
 # colors = ['skyblue', 'lightgreen', 'lightcoral', 'lightsalmon']
@@ -207,6 +209,8 @@ for i in range(len(times)):
     
     extrema_offsets_dataseti = []
     extrema_indices_dataseti = []
+    # Add real extrema index
+    extrema_indices_dataseti.append(index_real_extrema)
 
     for data in dataset:
         dataFilt = data[:, (data[0] >= times[i][0]) & (data[0] <= times[i][1])]
@@ -221,14 +225,28 @@ for i in range(len(times)):
     
 #%% Plot data as histogram
 
+# Important: We need to mask the data to exclude any extrema at 0 index (as that's the initial value not our 
+#            prediction. Also remove data with wildly differing extrema indices)
+
+extrema_indices = np.asarray(extrema_indices).T
+
 # Transpose the offset data
 extr_offsets = np.asarray(extrema_offsets).T
 
+# Identify columns to be removed based on criteria
+remove_columns = (
+    np.any(extrema_indices == 0, axis=0) |
+    (np.max(extrema_indices, axis=0) - np.min(extrema_indices, axis=0) > 60)
+)
+# Remove corresponding columns from extr_offsets
+filtered_extr_offsets = extr_offsets[:, ~remove_columns]
+filtered_extr_indices = extrema_indices[:, ~remove_columns]
+
 # Extract each spacecraft's offsets
-ace_offsets = abs(extr_offsets[0])
-dsc_offsets = abs(extr_offsets[1])
-wnd_offsets = abs(extr_offsets[2])
-multi_offsets = abs(extr_offsets[3])
+ace_offsets = abs(filtered_extr_offsets[0])
+dsc_offsets = abs(filtered_extr_offsets[1])
+wnd_offsets = abs(filtered_extr_offsets[2])
+multi_offsets = abs(filtered_extr_offsets[3])
     
 # Should hopefully see a higher frequency in smaller bins for multi
 plt.hist([ace_offsets,dsc_offsets,wnd_offsets,multi_offsets],bins=100,label=['ACE','DSCOVR','Wind','Multi'],
@@ -240,6 +258,11 @@ plt.ylabel('Probability Density')
 
 plt.legend()
 plt.show()
+
+print(np.mean(ace_offsets))
+print(np.mean(dsc_offsets))
+print(np.mean(wnd_offsets))
+print(np.mean(multi_offsets))
 
 #%%
 
@@ -254,3 +277,22 @@ for i in range(len(times)):
 #%%
 
 plt.hist(extreme_sym,bins=100)
+
+
+#%% Let's see what we can do with these extrema indices to find offsets via extrema time differences
+
+real_x_inds = filtered_extr_indices[0]
+ace_x_inds = filtered_extr_indices[1]
+dsc_x_inds = filtered_extr_indices[2]
+wnd_x_inds = filtered_extr_indices[3]
+mul_x_inds = filtered_extr_indices[4]
+
+multi_extr_dts = (real_sym[0][real_x_inds] - multi_sym[0][mul_x_inds])/60
+#ace_extr_dts = abs(real_sym[0][real_x_inds] - ace_sym[0][mul_x_inds])/60
+
+plt.hist(multi_extr_dts, bins=20, density=True)
+
+plt.xlabel('Time Shift Between Extreme Values (mins)')
+plt.ylabel('Probability Density')
+
+

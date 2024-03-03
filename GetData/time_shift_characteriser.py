@@ -30,6 +30,42 @@ multi_sym = np.load('multi_sym_forecastnpy.npy')
 # Real SYM/H
 real_sym = pd.read_csv("SYM_data_unix.csv")
 
+
+#%% deltaTs vs CCs
+
+# Filter dTs based on magnitude less than 2400
+filtered_indices = np.abs(dTs) < 3600
+filtered_dTs = dTs[filtered_indices]
+filtered_CCs = CCs[filtered_indices]
+
+# Define the number of bins
+num_bins = 20
+
+# Create histogram
+hist, bins = np.histogram(filtered_dTs, bins=num_bins)
+
+# Calculate bin centers
+bin_centers = (bins[:-1] + bins[1:]) / 2
+
+# Calculate the mean value in each bin
+mean_values = [np.mean(filtered_CCs[(filtered_dTs >= bins[i]) & (filtered_dTs < bins[i + 1])]) for i in range(num_bins)]
+
+# Plot the mean values
+fig, ax = plt.subplots(1, 1)
+with plt.style.context('ggplot'):
+    #sns.set_palette("tab10")
+    ax.scatter(bin_centers, mean_values, marker='o')
+
+# Set labels and title
+ax.set_xlabel('$\Delta Ts$')
+ax.set_ylabel('Mean CCs in Bin')
+ax.set_title('Filtered Binned Scatter Plot with Mean Values')
+
+# Show the plot
+plt.show()
+
+
+
 #%% Create function to calculate displacement integral
 
 displacement = []
@@ -83,13 +119,25 @@ degree = 1  # Linear fit
 coefficients = np.polyfit(bin_midpoints[:-1], filtered_averages.values[:-1], degree)
 line_of_best_fit = np.polyval(coefficients, bin_midpoints)
 
+# Calculate residuals
+residuals = filtered_averages.values[:-1] - np.polyval(coefficients, bin_midpoints[:-1])
+
+# Calculate Mean Squared Error (MSE)
+mse = np.mean(residuals**2)
+
+# Calculate Root Mean Squared Error (RMSE)
+rmse = np.sqrt(mse)
+
+# Calculate the standard deviation of the data
+std_dev = np.std(filtered_averages.values[:-1])
+
 # Plot the line of best fit
 plt.plot(bin_midpoints, line_of_best_fit, color='red', label='Linear Regression Line of Best Fit')
 
-plt.xlabel('Displacement (Cumulative SYM/H)',fontsize=15)
-plt.ylabel('Cross-Correlation',fontsize=15)
-plt.xticks(fontsize=15)
-plt.yticks(fontsize=15)
+plt.xlabel('Displacement (Cumulative SYM/H)',fontsize=15,color='black')
+plt.ylabel('Cross-Correlation',fontsize=15,color='black')
+plt.xticks(fontsize=15,color='black')
+plt.yticks(fontsize=15,color='black')
 plt.legend(loc='upper left',fontsize=10)
 plt.show()
 
@@ -102,7 +150,7 @@ bins = np.linspace(min(displacement), max(displacement), num=100)  # You can adj
 # Use pandas to group the data by the bins and calculate the mean of 'CCs' in each bin
 df = pd.DataFrame({'displacement': displacement, 'dTs': dTs})
 df['displacement_bin'] = pd.cut(df['displacement'], bins=bins)
-df = df[(df['dTs'] >= 0) & (df['dTs'] <= 3600)] # Filter the values to keep only time offsets between 0 & 60 mins
+df = df[(df['dTs'] >= -3600) & (df['dTs'] <= 3600)] # Filter the values to keep only time offsets between 0 & 60 mins
 averages = df.groupby('displacement_bin')['dTs'].mean()
 
 # Calculate the count of data points in each bin

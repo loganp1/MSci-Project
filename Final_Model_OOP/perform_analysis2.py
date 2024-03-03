@@ -57,27 +57,38 @@ MYclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM, OMNI_data=df_
 #%% Split data into T hour periods
 
 # DON'T RUN THIS AGAIN ONLY ONCE, RELOAD DATA IF DO ACCIDENTALLY
-MYclass.SplitTimes(split_times_4hrs)
+MYclass.SplitTimes(split_times_4hrs, keep_primary_data=True)
 
 #%% Get data
 
-zvCCs, maxCCs, deltaTs = MYclass.GetCC(['DSCOVR','real'])
+zvCCs, maxCCs, deltaTs = MYclass.GetCC(['multi','real'])
 
 #%% Save data files
 
-np.save('DvsR_zvCCs_improved.npy', zvCCs)
-np.save('DvsR_maxCCs_improved.npy', maxCCs)
-np.save('DvsR_deltaTs_improved.npy', deltaTs)
+np.save('MvsR_zvCCs_NOtimeinterp.npy', zvCCs)
+np.save('MvsR_maxCCs_NOtimeinterp.npy', maxCCs)
+np.save('MvsR_deltaTs_NOtimeinterp.npy', deltaTs)
 
 #%% Get data
 
-zvCCs2, maxCCs2, deltaTs2 = MYclass.GetCC(['Wind','real'])
+zvCCsAD, maxCCsAD, deltaTsAD, \
+zvCCsAW, maxCCsAW, deltaTsAW, \
+zvCCsDW, maxCCsDW, deltaTsDW = MYclass.GetCC(['pair_combs','real'])
+
 
 #%% Save data files
 
-np.save('WvsR_zvCCs_improved.npy', zvCCs2)
-np.save('WvsR_maxCCs_improved.npy', maxCCs2)
-np.save('WvsR_deltaTs_improved.npy', deltaTs2)
+np.save('ADvsR_zvCCs_improved.npy', zvCCsAD)
+np.save('ADvsR_maxCCs_improved.npy', maxCCsAD)
+np.save('ADvsR_deltaTs_improved.npy', deltaTsAD)
+
+np.save('AWvsR_zvCCs_improved.npy', zvCCsAW)
+np.save('AWvsR_maxCCs_improved.npy', maxCCsAW)
+np.save('AWvsR_deltaTs_improved.npy', deltaTsAW)
+
+np.save('DWvsR_zvCCs_improved.npy', zvCCsDW)
+np.save('DWvsR_maxCCs_improved.npy', maxCCsDW)
+np.save('DWvsR_deltaTs_improved.npy', deltaTsDW)
 
 #%% Plot data
 

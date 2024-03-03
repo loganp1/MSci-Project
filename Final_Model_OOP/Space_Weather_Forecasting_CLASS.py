@@ -122,12 +122,14 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         '''class1 is the propagation class (I've had to edit this as was calling required_form too often)'''
         
         # Ensure chosen_method is either 'single' or 'multi'
-        assert chosen_method in ['single', 'multi', 'both'], \
-        "Invalid value for chosen_method. Choose 'single', 'multi' or 'both'."
+        assert chosen_method in ['single', 'multi', 'both', 'pair_combs'], \
+        "Invalid value for chosen_method. Choose 'single', 'multi', 'both' or 'pair_combs'."
         
         # Extract initial SYM/H value ready for forecasting
         #sym0 = self._SYMr['SYM/H, nT'].values[0] ### OH MY GOD DONT USE THIS FOR SPLIT DATA 
-
+        #print('ALERT: YOU ARE USING SAME SYM0 FOR ALL PERIODS - STOP IF DOING SPLIT PERIODS')
+        # actually don't need this just input single sym0 value into fn if doing whole dataset not split
+        
         # # Create an object from SC_Propagation sub-class to propagate the data downstream
         # class1 = SC_Propagation(self._SC_dict)
 
@@ -204,6 +206,25 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             
             return (time_seriesm, time_series1, time_series2, time_series3, sym_forecastm, sym_forecast1, 
                    sym_forecast2, sym_forecast3)
+        
+        if chosen_method == 'pair_combs':
+            
+            df_propAD, df_propAW, df_propDW = class1.pairs_WA_propagate()
+            
+            classAD = SYM_H_Model(df_propAD,sym0)
+            classAW = SYM_H_Model(df_propAW,sym0)
+            classDW = SYM_H_Model(df_propDW,sym0)
+            sym_forecast1 = classAD.predict_SYM()
+            sym_forecast2 = classAW.predict_SYM()
+            sym_forecast3 = classDW.predict_SYM()
+            
+            time_series1 = df_propAD['Time']
+            time_series2 = df_propAW['Time']
+            time_series3 = df_propDW['Time']
+            
+            return (time_series1, time_series2, time_series3, 
+                    sym_forecast1, sym_forecast2, sym_forecast3)
+            
             
         else:
             class2 = SYM_H_Model(df_prop,sym0)
@@ -274,7 +295,10 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
 
             
 
-    def SplitTimes(self, split_times):
+    def SplitTimes(self, split_times, keep_primary_data=False):
+        
+        # Set keep_primary_data to keep v, Bz and n data and propagate this instead of E & P
+        # (You can obviously simply calculate E & P after propagation if necessary)
         
         ace_dfs = []
         dsc_dfs = []
@@ -283,7 +307,7 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         
         # Try and get all dfs in required form before splitting
         class_prop = SC_Propagation(self._SC_dict)
-        class_prop.required_form()
+        class_prop.required_form(keep_primary_data=keep_primary_data)
         self._SC_dict = class_prop._SCdict
         
         # Split the DataFrame based on the min_max_times
@@ -374,6 +398,22 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         maxCCs = []
         deltaTs = []
         
+        # For pairs as well 
+        zvCCsAD = []
+        maxCCsAD = []
+        deltaTsAD = []
+        zvCCsAW = []
+        maxCCsAW = []
+        deltaTsAW = []
+        zvCCsDW = []
+        maxCCsDW = []
+        deltaTsDW = []
+        
+        # I also want to return some of the datasets used to derive results for more insight
+        
+        # Want propagated: Bz, n, v which are used to derive E & P (we can always use them to plot E & P)
+        
+        
         
         for i in range(len(self._ace_dfs)):
             
@@ -409,6 +449,11 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
                 sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'multi')
             elif chosen_pair[0] == 'real':
                 sym1, t1 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
+                
+            elif chosen_pair[0] == 'pair_combs':
+                pairs = True
+                sym0 = self.GetSYM0('multi',i) # using 3 SC multi to get sym0 for now, MAY NEED TO CHANGE
+                tAD, tAW, tDW, symAD, symAW, symDW = myclass.Forecast_SYM_H(sym0, class_prop, 'pair_combs')
                 
             # Now we can split the OMNI data if we need to based on the multi propagated times
             # Only do this inside elif statement below to optimise run time
@@ -499,42 +544,96 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
                 sym1, t1 = sym_OMNI, time_OMNI
                 
                 
-            
-            # Turn series' into lists so we can index properly
-            t1, t2 = (t1.tolist(), t2.tolist())
-            
-            # Form 2d lists for time series' + data
-            list1 = [t1,sym1]
-            list2 = [t2,sym2]
-            
-            # Align and interpolate 2 desired sym datasets
-            common_time, sym1A, sym2A = align_and_interpolate_datasets(list1,list2,len(t1))
-            sym1A, sym2A = sym1A[0], sym2A[0]
-            
-            # Cross-correlation
-            time_delays,cross_corr_values = cross_correlation(sym1A, sym2A, common_time)
-
-            # Find the index where time_delays is 0
-            zero_delay_index = np.where(time_delays == 0)[0]
-            max_index = np.argmax(cross_corr_values)
+            if pairs == True:
+                paircount=0
+                t2 = t2.tolist()
+                for pair in [[tAD,symAD],[tAW,symAW],[tDW,symDW]]:
+                    
+                    t1 = pair[0].tolist()
+                    
+                    # Form 2d lists for time series' + data
+                    list1 = [t1,pair[1]]
+                    list2 = [t2,sym2]
+                    
+                    # Align and interpolate 2 desired sym datasets
+                    common_time, sym1A, sym2A = align_and_interpolate_datasets(list1,list2,len(t1))
+                    sym1A, sym2A = sym1A[0], sym2A[0]
+                    
+                    # Cross-correlation
+                    time_delays,cross_corr_values = cross_correlation(sym1A, sym2A, common_time)
         
+                    # Find the index where time_delays is 0
+                    zero_delay_index = np.where(time_delays == 0)[0]
+                    max_index = np.argmax(cross_corr_values)
+                
+                    
+                    # Output max CC, zero value CC and time shift between these two values
+                    maxCC = max(cross_corr_values)
+                    zeroValCC = cross_corr_values[zero_delay_index][0]
+                    deltaT = time_delays[max_index] - time_delays[zero_delay_index]
+                    
+                    if paircount == 0:
+                        zvCCsAD.append(zeroValCC)
+                        maxCCsAD.append(maxCC)
+                        deltaTsAD.append(deltaT[0])
+                    if paircount == 1:
+                        zvCCsAW.append(zeroValCC)
+                        maxCCsAW.append(maxCC)
+                        deltaTsAW.append(deltaT[0])
+                    if paircount == 2:
+                        zvCCsDW.append(zeroValCC)
+                        maxCCsDW.append(maxCC)
+                        deltaTsDW.append(deltaT[0])
+                    paircount+=1
             
-            # Output max CC, zero value CC and time shift between these two values
-            maxCC = max(cross_corr_values)
-            zeroValCC = cross_corr_values[zero_delay_index][0]
-            deltaT = time_delays[max_index] - time_delays[zero_delay_index]
+                
+            else:
+                # Turn series' into lists so we can index properly
+                t1, t2 = (t1.tolist(), t2.tolist())
+                
+                # Form 2d lists for time series' + data
+                list1 = [t1,sym1]
+                list2 = [t2,sym2]
+                
+                # Align and interpolate 2 desired sym datasets
+                common_time, sym1A, sym2A = align_and_interpolate_datasets(list1,list2,len(t1))
+                sym1A, sym2A = sym1A[0], sym2A[0]
+                
+                # Cross-correlation
+                time_delays,cross_corr_values = cross_correlation(sym1A, sym2A, common_time)
+    
+                # Find the index where time_delays is 0
+                zero_delay_index = np.where(time_delays == 0)[0]
+                max_index = np.argmax(cross_corr_values)
             
-            zvCCs.append(zeroValCC)
-            maxCCs.append(maxCC)
-            deltaTs.append(deltaT[0])
+                
+                # Output max CC, zero value CC and time shift between these two values
+                maxCC = max(cross_corr_values)
+                zeroValCC = cross_corr_values[zero_delay_index][0]
+                deltaT = time_delays[max_index] - time_delays[zero_delay_index]
+                
+                zvCCs.append(zeroValCC)
+                maxCCs.append(maxCC)
+                deltaTs.append(deltaT[0])
             
             print(i)
             #first = False
            
         # Get deltaTs as list of elements (not list of lots of 1-element lists!)
-        deltaTs = [arr for arr in deltaTs]    
-           
-        return zvCCs, maxCCs, deltaTs
+        
+        if pairs == True:
             
+            deltaTsAD = [arr for arr in deltaTsAD]  
+            deltaTsAW = [arr for arr in deltaTsAW]   
+            deltaTsDW = [arr for arr in deltaTsDW]   
+               
+            return zvCCsAD, maxCCsAD, deltaTsAD, zvCCsAW, maxCCsAW, deltaTsAW, zvCCsDW, maxCCsDW, deltaTsDW
+        
+        else:
+                
+            deltaTs = [arr for arr in deltaTs]    
+               
+            return zvCCs, maxCCs, deltaTs
+                
     
         

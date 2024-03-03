@@ -89,19 +89,21 @@ Efield = df_storm1['Electric field, mV/m'].values
 pressure = df_storm1['Flow pressure, nPa'].values
 
 # Plotting
-plt.figure(figsize=(12, 6))
+plt.figure(figsize=(12,5))
 with plt.style.context('ggplot'):
     plt.plot(days1, sym_storm1, label='SYM/H')
 plt.grid()
 
 # Adding labels and title
-plt.xlabel('Day of Year [2001]', fontsize=20,color='black')
-plt.ylabel('SYM/H [nT]', fontsize=20,color='black')
+plt.xlabel('Date in 2001', fontsize=30,color='black')
+plt.ylabel('SYM/H (nT)', fontsize=30,color='black')
 #plt.title('Storm 1', fontsize=15)
 
 # Set x-axis ticks to display only whole numbers
-plt.xticks(range(int(days1[0]), int(days1[-1]) + 1), fontsize=20,color='black')
-plt.yticks(fontsize=20,color='black')
+#plt.xticks(range(int(days1[0]), int(days1[-1]) + 1), fontsize=30,color='black')
+date_mapping = {78: '19-03', 79: '20-03', 80: '21-03', 81: '22-03'}
+plt.xticks(list(date_mapping.keys()), list(date_mapping.values()), fontsize=30, color='black')
+plt.yticks(fontsize=30,color='black')
 
 # Plot parameters E and P in storm to compare to SYM/H
 #plt.plot(days1, Efield, label = 'E')
@@ -112,8 +114,8 @@ minima_index = sym_storm1.argmin()
 minima_day = days1[minima_index]
 minima_value = sym_storm1[minima_index]
 plt.annotate('', xy=(minima_day-0.1,minima_value), xytext=(78, minima_value),
-             arrowprops=dict(facecolor='black', arrowstyle='<->', shrinkA=0, shrinkB=0), fontsize=12, color='black')
-plt.text(78.8, -155, 'Main Phase', fontsize=20, color='Black', ha='center', va='center')
+             arrowprops=dict(facecolor='black', arrowstyle='<->', shrinkA=0, shrinkB=0), fontsize=30, color='black')
+plt.text(78.8, -155, 'Main Phase', fontsize=30, color='Black', ha='center', va='center')
 
 
 # Annotation for recovery phase
@@ -121,9 +123,9 @@ recovery_start_day = minima_day
 recovery_end_day = days1[-1]
 recovery_value = minima_value
 plt.annotate('',xy=(recovery_start_day + 0.2, -150), xytext=(recovery_start_day + 2.5, -150),
-             arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0), fontsize=12, color='black',
+             arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0), fontsize=30, color='black',
              horizontalalignment='center', verticalalignment='center')
-plt.text(80.9, -140, 'Recovery Phase', fontsize=20, color='Black', ha='center', va='center')
+plt.text(80.9, -140, 'Recovery Phase', fontsize=30, color='Black', ha='center', va='center')
 
 
 #plt.legend()

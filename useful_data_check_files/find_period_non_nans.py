@@ -63,7 +63,7 @@ print(f"Maximum run length: {run_lengths.max()}")
 
 #%% Find longest run without Q nans by forming list of nan indices
 
-Q = 1 # for this code i.e. it finds longest run without any nans
+Q = 9 # for this code i.e. it finds longest run without any nans
 
 nanlist = df_ACE.index[pd.isnull(df_ACE['n'])].tolist()
 
@@ -101,3 +101,91 @@ def max_difference_values(lst):
 
 values = max_difference_values(nanlist)
 print(f"Values with the largest difference: {values}")
+
+
+#%% Let's look at Bz and v as well
+
+nan_indices = np.where(df_ACE['Bz'].isna())[0]
+
+print("Indices of NaN values in df_ACE['Bz']:", nan_indices)
+
+def longest_consecutive_run(indices):
+
+    current_run = [indices[0]]
+    longest_run = []
+
+    for i in range(1, len(indices)):
+        if indices[i] == indices[i - 1] + 1:
+            current_run.append(indices[i])
+        else:
+            if len(current_run) > len(longest_run):
+                longest_run = current_run
+            current_run = [indices[i]]
+
+    # Check for the last run
+    if len(current_run) > len(longest_run):
+        longest_run = current_run
+
+    return longest_run
+
+result = longest_consecutive_run(nan_indices)
+
+print("Longest run of consecutive nans in Bz:", len(result), 'long')
+
+#%%
+
+nan_indices1 = np.where(df_ACE['vx'].isna())[0]
+
+print("Indices of NaN values in df_ACE['Bz']:", nan_indices1)
+
+def longest_consecutive_run(indices):
+
+    current_run = [indices[0]]
+    longest_run = []
+
+    for i in range(1, len(indices)):
+        if indices[i] == indices[i - 1] + 1:
+            current_run.append(indices[i])
+        else:
+            if len(current_run) > len(longest_run):
+                longest_run = current_run
+            current_run = [indices[i]]
+
+    # Check for the last run
+    if len(current_run) > len(longest_run):
+        longest_run = current_run
+
+    return longest_run
+
+result1 = longest_consecutive_run(nan_indices1)
+
+print("Longest run of consecutive nans in v:", len(result1), 'long')
+
+#%%
+
+def consecutive_run_lengths(indices):
+
+    run_lengths = []
+    current_run_length = 1
+
+    for i in range(1, len(indices)):
+        if indices[i] == indices[i - 1] + 1:
+            current_run_length += 1
+        else:
+            if current_run_length > 10:
+                run_lengths.append(current_run_length)
+            current_run_length = 1
+
+    # Check for the last run
+    if current_run_length > 10:
+        run_lengths.append(current_run_length)
+
+    return run_lengths
+
+lengths_greater_than_10 = consecutive_run_lengths(nan_indices)
+
+print("Lengths of consecutive sets greater than 10:", lengths_greater_than_10)
+
+lengths_greater_than_10_v = consecutive_run_lengths(nan_indices1)
+
+print("Lengths of consecutive sets greater than 10:", lengths_greater_than_10_v)

@@ -69,7 +69,7 @@ gaps_in_hours = np.asarray(gaps)/60
 
 gdata_inds = np.asarray(end_indices)-np.asarray(start_indices)
 
-plt.hist(gdata_inds,bins=1000)
+plt.hist(gdata_inds,bins=1000);
 
 #%% Create array in required form for Ned's filter_good_data function
 
