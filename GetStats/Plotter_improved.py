@@ -15,14 +15,24 @@ import seaborn as sns
 
 # CCs for multi vs real
 multi=np.load('MvsR_maxCCs_improved.npy')
+multiz=np.load('MvsR_zvCCs_improved.npy')
 multiT=np.load('MvsR_deltaTs_improved.npy')
 
 multi_NI=np.load('MvsR_maxCCs_NOtimeinterp.npy')
 multiT_NI=np.load('MvsR_deltaTs_NOtimeinterp.npy')
 
+multi_f=np.load('MvsR_maxCCs_ALL3f.npy')
+multiz_f=np.load('MvsR_zvCCs_ALL3f.npy')
+multiT_f=np.load('MvsR_deltaTs_ALL3f.npy')
+
 # CCs for ACE vs real
 ACEvals=np.load('AvsR_maxCCs_improved.npy')
+ACEzvals=np.load('AvsR_zvCCs_improved.npy')
 ACET=np.load('AvsR_deltaTs_improved.npy')
+
+ACE_f=np.load('AvsR_maxCCs_ALL3f.npy')
+ACEz_f=np.load('AvsR_zvCCs_ALL3f.npy')
+ACET_f=np.load('AvsR_deltaTs_ALL3f.npy')
 
 # CCs for DSCOVR vs real
 DSCvals=np.load('DvsR_maxCCs_improved.npy')
@@ -62,21 +72,80 @@ AWT_NI = np.load('AWvsR_deltaTs_NOtimeinterp.npy')
 DWvals_NI = np.load('DWvsR_maxCCs_NOtimeinterp.npy')
 DWT_NI = np.load('DWvsR_deltaTs_NOtimeinterp.npy')
 
+
+#%%
+
+with plt.style.context('ggplot'):
+    sns.set_palette("tab10")
+    plt.hist(multi_f,density=True)
+
+# Set fontsize for axes labels
+plt.xlabel("Cross Correlation in SYM/H", fontsize=15,color='black')
+plt.ylabel("Probability Density", fontsize=15,color='black')
+#plt.ylim(0, 3)
+
+# Uncomment the line below if you want to set a title with fontsize
+# plt.title("Performance Comparison", fontsize=15)
+
+# Set fontsize for tick labels on both axes
+plt.xticks(fontsize=15,color='black')
+plt.yticks(fontsize=15,color='black')
+
+
+#%%
+
+with plt.style.context('ggplot'):
+    sns.set_palette("tab10")
+    plt.hist([multi,multi_f],density=True,label=['Old Data','New Filtered Data'])
+
+# Set fontsize for axes labels
+plt.xlabel("Cross Correlation in SYM/H", fontsize=15,color='black')
+plt.ylabel("Probability Density", fontsize=15,color='black')
+plt.ylim(0, 3)
+
+# Uncomment the line below if you want to set a title with fontsize
+# plt.title("Performance Comparison", fontsize=15)
+
+# Set fontsize for tick labels on both axes
+plt.xticks(fontsize=15,color='black')
+plt.yticks(fontsize=15,color='black')
+plt.legend()
+
+print(np.mean(multi))
+print(np.mean(multi_f))
+
+
 #%%
 
 
 filter_time = 2400
 
 maskm = abs(multiT)<filter_time
+maskm_f = abs(multiT_f)<filter_time
 maskA = abs(ACET)<filter_time
 maskD = abs(DSCT)<filter_time
 maskW = abs(WindT)<filter_time
 
 f_multi = multi[maskm]
+f_multi_f = multi_f[maskm_f]
 f_ACE = ACEvals[maskm]
 f_DSC = DSCvals[maskm]
 f_Wind = Windvals[maskm]
 f_OMNI = OMNIvals[maskm]
+
+with plt.style.context('ggplot'):
+    sns.set_palette("tab10")
+    plt.hist([f_multi,f_multi_f],density=True,label=['Old Filtering','New Filtering'])
+    plt.legend()
+    plt.xlabel("Cross Correlation in SYM/H", fontsize=15,color='black')
+    plt.ylabel("Probability Density", fontsize=15,color='black')
+    plt.ylim(0, 3)
+    plt.show()
+
+print(np.mean(f_multi))
+print(np.mean(f_multi_f))
+
+#%%
 
 #Meanvals = (ACEvals+DSCvals+Windvals)/3
 Meanvals = (f_ACE+f_DSC+f_Wind)/3
@@ -456,4 +525,102 @@ labels = ['ALL 3', 'DW']
 # Create pie chart
 plt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=140)
 plt.title('Proportions of Lists with Highest Values')
+plt.show()
+
+
+#%% Scatter plot CCs comparison
+
+# Set the color for faint light red points
+color = 'lightcoral'
+
+# Create a scatter plot with faint light red points
+plt.scatter(ACEzvals, multiz, c=color, alpha=0.5)
+plt.grid()
+
+# Add labels and title
+plt.xlabel('ACE CC')
+plt.ylabel('Multi CC')
+
+# Show the plot
+plt.show()
+
+#%%
+
+# Calculate perpendicular distances from the y=x line
+distances = np.abs(np.subtract(ACEzvals, multiz)) / np.sqrt(2)
+
+# Find the indices of points with maximum distance
+max_distance_indices = np.argmax(distances)
+
+# Get the coordinates of the points
+max_distance_points = (multiz[max_distance_indices], ACEzvals[max_distance_indices])
+
+# Create a scatter plot
+plt.scatter(multiz, ACEzvals, label='Data Points')
+
+# Highlight the points with maximum distance
+plt.scatter(*max_distance_points, color='red', marker='x', label='Max Distance Points')
+
+# Add y=x line for reference
+plt.plot([min(multiz), max(multiz)], [min(multiz), max(multiz)], linestyle='--', color='gray', label='y=x line')
+
+# Add labels and title
+plt.xlabel('X-axis Label')
+plt.ylabel('Y-axis Label')
+plt.title('Scatter Plot with Max Distance Offset Points')
+
+# Add legend
+plt.legend(loc='lower right')
+
+# Show the plot
+plt.show()
+
+
+#%% Little hypothesis - does the newly cleaned data solve this?
+
+# Repeat above
+
+# Set the color for faint light red points
+color = 'lightcoral'
+
+# Create a scatter plot with faint light red points
+plt.scatter(ACEzvals, multiz, c=color, alpha=0.5)
+plt.grid()
+
+# Add labels and title
+plt.xlabel('ACE CC')
+plt.ylabel('Multi CC')
+
+# Show the plot
+plt.show()
+
+#%%
+
+# Calculate perpendicular distances from the y=x line
+distances = np.abs(np.subtract(ACEz_f, multiz_f)) / np.sqrt(2)
+
+# Find the indices of points with maximum distance
+max_distance_indices = np.argmax(distances)
+
+# Get the coordinates of the points
+max_distance_points = (multiz_f[max_distance_indices], ACEz_f[max_distance_indices])
+
+# Create a scatter plot
+plt.scatter(multiz_f, ACEz_f, label='Data Points')
+
+# Highlight the points with maximum distance
+plt.scatter(*max_distance_points, color='red', marker='x', label='Max Distance Points')
+
+# Add y=x line for reference
+plt.plot([min(multiz_f), max(multiz_f)], [min(multiz_f), max(multiz_f)], linestyle='--', color='gray', label='y=x line')
+
+# Add labels and title
+plt.xlabel('X-axis Label')
+plt.ylabel('Y-axis Label')
+plt.title('Scatter Plot with Max Distance Offset Points')
+
+# Add legend
+plt.legend(loc='lower right')
+
+# Show the plot
 plt.show()

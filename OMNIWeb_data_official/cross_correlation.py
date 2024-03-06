@@ -31,10 +31,11 @@ def cross_correlation(x, y, interpolated_time_series):
     y_prime = y - y_mean
 
     # Calculate cross-correlation using the formula
-    cross_corr = np.correlate(x_prime, y_prime, mode='full') / np.sqrt(np.sum(x_prime**2) * np.sum(y_prime**2))
+    cross_corr = np.correlate(x_prime, y_prime, mode='same') / np.sqrt(np.sum(x_prime**2) * np.sum(y_prime**2))
     
     # Calculate the time lags corresponding to the cross-correlation values
-    time_lags = np.arange(-len(x) + 1, len(x))
+    #time_lags = np.arange(-len(x) + 1, len(x))
+    time_lags = np.arange(-len(cross_corr)//2, len(cross_corr)//2)
 
     # Calculate delta t for each time lag using the interpolated_time_series
     delta_t = interpolated_time_series[1] - interpolated_time_series[0]

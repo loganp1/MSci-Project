@@ -68,6 +68,15 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
         return [self._ace_dfs,self._dsc_dfs,self._wnd_dfs]
     
     
+    def SplitSubDFs(self,index1,index2):
+        
+        self._ace_dfs = [self._ace_dfs[index1:index2]]
+        self._dsc_dfs = [self._dsc_dfs[index1:index2]]
+        self._wnd_dfs = [self._wnd_dfs[index1:index2]]
+        
+        #return self._ace_dfs[index], self._dsc_dfs[index], self._wnd_dfs[index]
+    
+    
     def check_nan_values(self, sc_name):
         """
         Check for NaN values in the 'n' column and return a list of DateTime values.
@@ -441,13 +450,16 @@ class Space_Weather_Forecast(SYM_H_Model, SC_Propagation):
             
             # For first in pair
             if chosen_pair[0] in ['ACE', 'DSCOVR', 'Wind']:
+                pairs = False
                 sym0 = self.GetSYM0(chosen_pair[0],i)
                 sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'single', chosen_pair[0])
 
             elif chosen_pair[0] == 'multi':
+                pairs = False
                 sym0 = self.GetSYM0('multi',i)
                 sym1, t1 = myclass.Forecast_SYM_H(sym0, class_prop, 'multi')
             elif chosen_pair[0] == 'real':
+                pairs = False
                 sym1, t1 = myclass.GetSYMdata()['SYM/H, nT'], myclass.GetSYMdata()['Time']
                 
             elif chosen_pair[0] == 'pair_combs':

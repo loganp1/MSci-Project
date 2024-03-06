@@ -5,8 +5,6 @@ Created on Mon Nov 20 18:43:48 2023
 @author: Ned
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
 import time
 t1=time.time()
 #periods=np.loadtxt("goodPeriods.txt")

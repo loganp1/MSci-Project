@@ -27,11 +27,13 @@ df_SYM = pd.read_csv('SYM_data_unix.csv')
 df_OMNI = pd.read_csv('OMNI_EP_data_unix.csv')
 
 #%%
-split_times_4hrs = np.load('split_data_times_4hrs.npy')
-split_times_12hrs = np.load('split_data_times_12hrs.npy')
-split_times_2hrs = np.load('split_data_times_2hrs.npy')
-split_times_8hrs = np.load('split_data_times_8hrs.npy')
-split_times_10hrs = np.load('split_data_times_10hrs.npy')
+# split_times_4hrs = np.load('split_data_times_4hrs.npy')
+# split_times_12hrs = np.load('split_data_times_12hrs.npy')
+# split_times_2hrs = np.load('split_data_times_2hrs.npy')
+# split_times_8hrs = np.load('split_data_times_8hrs.npy')
+# split_times_10hrs = np.load('split_data_times_10hrs.npy')
+
+split_times = np.load('split_data_times_ALLf.npy')
 
 #%% OMNI data needs to be cleaned
 
@@ -57,7 +59,7 @@ MYclass = Space_Weather_Forecast(SC_dict=sc_dict, SYM_real=df_SYM, OMNI_data=df_
 #%% Split data into T hour periods
 
 # DON'T RUN THIS AGAIN ONLY ONCE, RELOAD DATA IF DO ACCIDENTALLY
-MYclass.SplitTimes(split_times_4hrs, keep_primary_data=True)
+MYclass.SplitTimes(split_times, keep_primary_data=False)
 
 #%% Get data
 
@@ -65,9 +67,9 @@ zvCCs, maxCCs, deltaTs = MYclass.GetCC(['multi','real'])
 
 #%% Save data files
 
-np.save('MvsR_zvCCs_NOtimeinterp.npy', zvCCs)
-np.save('MvsR_maxCCs_NOtimeinterp.npy', maxCCs)
-np.save('MvsR_deltaTs_NOtimeinterp.npy', deltaTs)
+np.save('DvsR_zvCCs_ALL3f.npy', zvCCs)
+np.save('DvsR_maxCCs_ALL3f.npy', maxCCs)
+np.save('DvsR_deltaTs_ALL3f.npy', deltaTs)
 
 #%% Get data
 

@@ -101,7 +101,7 @@ def find_good_regions(column_name, max_allowed_nans):
 good_data_dict = {}
 
 # Specify the maximum allowed consecutive NaNs for each column
-max_allowed_nans_dict = {'n': 10, 'other_column1': 10, 'other_column2': 10}
+max_allowed_nans_dict = {'n': 10, 'vx': 10, 'Bz': 10}
 
 # Loop through selected columns and find good data regions
 for column_name in selected_columns:
@@ -110,8 +110,8 @@ for column_name in selected_columns:
     good_data_dict[column_name] = np.array([[df['Time'][start], df['Time'][end]] for start, end in zip(start_indices, 
                                                                                                        end_indices)])
 
-# Save the good data dictionary to a file
-#np.save('ace_nNaNs_max10_times_dict.npy', good_data_dict)
+# Save the good data dictionary to a file - no we need to save the single array below
+# np.save('ace_nNaNs_max10_times_new.npy', good_data_dict)
 
 #%%
 
@@ -153,3 +153,149 @@ print(result)
 good_periods = np.asarray(find_common_intervals(good_data_dict['n'],good_data_dict['vx'],good_data_dict['Bz']))
 
 good_periods_test=good_periods==good_data
+
+np.save('ace_nNaNs_max10_times_new.npy', good_periods)
+
+
+#%% Need to use for 9 arrays - 3 for each spacecraft
+
+def find_common_intervals(*arrays):
+    result = []
+    
+    pointers = [0] * len(arrays)
+    
+    while all(pointers[i] < len(arr) for i, arr in enumerate(arrays)):
+        start_time = max(arr[pointers[i]][0] for i, arr in enumerate(arrays))
+        end_time = min(arr[pointers[i]][1] for i, arr in enumerate(arrays))
+        
+        if start_time <= end_time:
+            result.append([start_time, end_time])
+        
+        # Move pointers based on the smallest end time
+        min_end_time = min(arr[pointers[i]][1] for i, arr in enumerate(arrays))
+        for i, arr in enumerate(arrays):
+            if arr[pointers[i]][1] == min_end_time:
+                pointers[i] += 1
+    
+    return result
+
+#%%
+
+df_ACE = pd.read_csv('ace_data_unix.csv')
+df_DSCOVR = pd.read_csv('dscovr_data_unix.csv')
+df_Wind = pd.read_csv('wind_data_unix.csv')
+
+#%%
+
+##### YOU NEED TO APPLY THE find_good_regions to ALL OF THESE THEN INPUT THE GOOD_PERIODS INTO THE FOLLOWING FN
+
+ALL3_good_periods = find_common_intervals(df_ACE['n'], df_ACE['vx'], df_ACE['Bz'], 
+                                          df_DSCOVR['Proton Density, n/cc'], df_DSCOVR['Vx Velocity,km/s'], 
+                                          df_DSCOVR['BZ, GSE, nT'], 
+                                          df_Wind['Kp_proton Density, n/cc'], df_Wind['KP_Vx,km/s'], 
+                                          df_Wind['BZ, GSE, nT'])
+
+#%%
+
+# Specify the column names you want to consider - use any of 3 velocity comps as all match up in terms of nans
+#selected_columns = ['n', 'vx', 'Bz']
+
+# Function to find good data regions for a specific column
+def find_good_regions(df, column_name, max_allowed_nans):
+    nan_mask = df[column_name].isnull()
+    consecutive_nans = nan_mask.groupby((~nan_mask).cumsum()).cumsum()
+    good_regions = consecutive_nans <= max_allowed_nans
+    start_indices = good_regions.index[good_regions & ~good_regions.shift(fill_value=False)].tolist()
+    end_indices = good_regions.index[~good_regions & good_regions.shift(fill_value=False)].tolist()
+    return start_indices, end_indices
+
+# Dictionary to store the good data for each column
+ACE_good_data_dict = {}
+DSC_good_data_dict = {}
+Wind_good_data_dict = {}
+
+#%%
+
+# DONT FORGET WE NEED TO MAKE NAN VALUES FOR SECOND 2
+
+Re = 6378
+
+# Replace 'DSCOVR' with 'df_DSCOVR'
+df_DSCOVR['Field Magnitude,nT'] = df_DSCOVR['Field Magnitude,nT'].replace(9999.99, np.nan)
+df_DSCOVR['Vector Mag.,nT'] = df_DSCOVR['Vector Mag.,nT'].replace(9999.99, np.nan)
+df_DSCOVR['BX, GSE, nT'] = df_DSCOVR['BX, GSE, nT'].replace(9999.99, np.nan)
+df_DSCOVR['BY, GSE, nT'] = df_DSCOVR['BY, GSE, nT'].replace(9999.99, np.nan)
+df_DSCOVR['BZ, GSE, nT'] = df_DSCOVR['BZ, GSE, nT'].replace(9999.99, np.nan)
+df_DSCOVR['Speed, km/s'] = df_DSCOVR['Speed, km/s'].replace(99999.9, np.nan)
+df_DSCOVR['Vx Velocity,km/s'] = df_DSCOVR['Vx Velocity,km/s'].replace(99999.9, np.nan)
+df_DSCOVR['Vy Velocity, km/s'] = df_DSCOVR['Vy Velocity, km/s'].replace(99999.9, np.nan)
+df_DSCOVR['Vz Velocity, km/s'] = df_DSCOVR['Vz Velocity, km/s'].replace(99999.9, np.nan)
+df_DSCOVR['Proton Density, n/cc'] = df_DSCOVR['Proton Density, n/cc'].replace(999.999, np.nan)
+df_DSCOVR['Wind, Xgse,Re'] = df_DSCOVR['Wind, Xgse,Re'].replace(9999.99, np.nan)
+df_DSCOVR['Wind, Ygse,Re'] = df_DSCOVR['Wind, Ygse,Re'].replace(9999.99, np.nan)
+df_DSCOVR['Wind, Zgse,Re'] = df_DSCOVR['Wind, Zgse,Re'].replace(9999.99, np.nan)
+
+# Have to do change to km AFTER removing vals else fill value will change!
+df_DSCOVR['Wind, Xgse,Re'] = df_DSCOVR['Wind, Xgse,Re'] * Re
+df_DSCOVR['Wind, Ygse,Re'] = df_DSCOVR['Wind, Ygse,Re'] * Re
+df_DSCOVR['Wind, Zgse,Re'] = df_DSCOVR['Wind, Zgse,Re'] * Re
+
+
+# Replace 'Wind' with 'df_Wind'
+df_Wind['BX, GSE, nT'] = df_Wind['BX, GSE, nT'].replace(9999.990000, np.nan)
+df_Wind['BY, GSE, nT'] = df_Wind['BY, GSE, nT'].replace(9999.990000, np.nan)
+df_Wind['BZ, GSE, nT'] = df_Wind['BZ, GSE, nT'].replace(9999.990000, np.nan)
+df_Wind['Vector Mag.,nT'] = df_Wind['Vector Mag.,nT'].replace(9999.990000, np.nan)
+df_Wind['Field Magnitude,nT'] = df_Wind['Field Magnitude,nT'].replace(9999.990000, np.nan)
+df_Wind['KP_Vx,km/s'] = df_Wind['KP_Vx,km/s'].replace(99999.900000, np.nan)
+df_Wind['Kp_Vy, km/s'] = df_Wind['Kp_Vy, km/s'].replace(99999.900000, np.nan)
+df_Wind['KP_Vz, km/s'] = df_Wind['KP_Vz, km/s'].replace(99999.900000, np.nan)
+df_Wind['KP_Speed, km/s'] = df_Wind['KP_Speed, km/s'].replace(99999.900000, np.nan)
+df_Wind['Kp_proton Density, n/cc'] = df_Wind['Kp_proton Density, n/cc'].replace(999.990000, np.nan)
+df_Wind['Wind, Ygse,Re'] = df_Wind['Wind, Ygse,Re'].replace(9999.990000, np.nan)
+df_Wind['Wind, Zgse,Re'] = df_Wind['Wind, Zgse,Re'].replace(9999.990000, np.nan)
+
+df_Wind['Wind, Xgse,Re'] = df_Wind['Wind, Xgse,Re']*Re
+df_Wind['Wind, Ygse,Re'] = df_Wind['Wind, Ygse,Re']*Re
+df_Wind['Wind, Zgse,Re'] = df_Wind['Wind, Zgse,Re']*Re
+
+
+# Loop through selected columns and find good data regions
+#%%
+dfcount = 1
+for df in [df_ACE,df_DSCOVR,df_Wind]:
+    if dfcount == 1:
+        columns = ['n','vx','Bz']
+    if dfcount == 2:
+        columns = ['Proton Density, n/cc','Vx Velocity,km/s','BZ, GSE, nT']
+    if dfcount == 3:
+        columns = ['Kp_proton Density, n/cc','KP_Vx,km/s','BZ, GSE, nT']
+    for column_name in columns:
+        max_allowed_nans = 10
+        start_indices, end_indices = find_good_regions(df, column_name, max_allowed_nans)
+        if dfcount == 1:
+            ACE_good_data_dict[column_name] = np.array([[df['Time'][start], df['Time'][end]] for start, 
+                                                    end in zip(start_indices, end_indices)])
+        if dfcount == 2:
+            DSC_good_data_dict[column_name] = np.array([[df['Time'][start], df['Time'][end]] for start, 
+                                                    end in zip(start_indices, end_indices)])
+        if dfcount == 3:
+            Wind_good_data_dict[column_name] = np.array([[df['Time'][start], df['Time'][end]] for start, 
+                                                    end in zip(start_indices, end_indices)])
+    dfcount += 1
+
+#%% Great, now apply these to the find_common_intervals function
+
+ALL3_good_periods = find_common_intervals(ACE_good_data_dict['n'],ACE_good_data_dict['vx'],ACE_good_data_dict['Bz'],
+                                          DSC_good_data_dict['Proton Density, n/cc'],
+                                          DSC_good_data_dict['Vx Velocity,km/s'],
+                                          DSC_good_data_dict['BZ, GSE, nT'],
+                                          Wind_good_data_dict['Kp_proton Density, n/cc'], 
+                                          Wind_good_data_dict['KP_Vx,km/s'], 
+                                          Wind_good_data_dict['BZ, GSE, nT'])
+
+ALL3_good_periods = np.asarray(ALL3_good_periods)
+                                          
+#%%
+
+np.save('max10_NaNs_ALLdata_start_end_times.npy', ALL3_good_periods)

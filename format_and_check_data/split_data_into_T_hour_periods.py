@@ -30,14 +30,15 @@ df_ACE['DateTime'] = pd.to_datetime(df_ACE['Time'], unit='s')
 # df_SYM['DateTime'] = pd.to_datetime(df_SYM['Time'], unit='s')
 
 #%% Now split the data based on the max 10 nans in a row filter for ACE (as density data so poor)
-
-min_max_times = np.load('ace_nNaNs_max10_times.npy')
+# NOPE, now filtered for ALL data (all 9, 3 each SC)
+T=4
+min_max_times = np.load('max10_NaNs_ALLdata_start_end_times.npy')
 
 # Apply Ned's function to split data into 4 hour periods
 
 split_times = modify_list(min_max_times,T*3600,T*3600)
 
-np.save('split_data_times_4hrs.npy', split_times)
+np.save('split_data_times_ALLf.npy', split_times)
 
 #%%
 
